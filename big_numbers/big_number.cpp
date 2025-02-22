@@ -6,80 +6,86 @@ namespace big_number
 
 	void BigNumber::NormalizeLength()
 	{
-		while (length > 1 && coefficients[length - 1] == 0)
+		while (length_ > 1 && coefficients_[length_ - 1] == 0)
 		{
-			--length;
+			--length_;
 		}
 	}
 	// Конструктор
-	BigNumber::BigNumber(int maxLen, int parameter) : length(1), maxLength(maxLen)
+	BigNumber::BigNumber(int maxLen, int parameter) : length_(1), maxLength_(maxLen)
 	{
-		coefficients = std::make_unique<BaseType[]>(maxLen);
-		std::fill(coefficients.get(), coefficients.get() + maxLen, 0);
+		coefficients_.resize(maxLen, 0);
 		// Если параметр не равен 0, инициализируем случайными значениями
 		if (parameter != 0)
 		{
-			length = maxLength;
-			for (int i = 0; i < maxLength; i++)
+			length_ = maxLength_;
+			for (int i = 0; i < maxLength_; i++)
 			{
-				coefficients[i] = rand();
+				coefficients_[i] = rand();
 			}
 			if (sizeof(BaseType) == sizeof(unsigned int))
 			{ // увеличинная генерация больших чтсел в основании с int
-				for (int i = 0; i < maxLength; ++i)
+				for (int i = 0; i < maxLength_; ++i)
 				{
-					coefficients[i] <<= 16;
-					coefficients[i] |= rand();
+					coefficients_[i] <<= 16;
+					coefficients_[i] |= rand();
 				}
 			}
 		}
 	}
 
 	// Конструктор копирования
-	BigNumber::BigNumber(const BigNumber &other) : length(other.length), maxLength(other.maxLength)
+	BigNumber::BigNumber(const BigNumber &other) : length_(other.length_), maxLength_(other.maxLength_)
 	{
-		coefficients = std::make_unique<BaseType[]>(maxLength);
-		std::copy(other.coefficients.get(), other.coefficients.get() + length, coefficients.get());
+		coefficients_ = other.coefficients_;
 	}
 
 	int BigNumber::GetLength()
 	{
-		return length;
+		return length_;
 	}
 
 	int BigNumber::GetMaxLength()
 	{
-		return maxLength;
+		return maxLength_;
 	}
 
 	BaseType *BigNumber::GetCoefficients()
 	{
-		return coefficients.get();
+		return coefficients_.data();
 	}
 
 	void BigNumber::SetLength(int olength)
 	{
-		length = olength;
+		if (olength > maxLength_)
+		{
+			throw std::invalid_argument("New length exceeds maximum length.");
+		}
+		length_ = olength;
 	}
 
 	void BigNumber::SetMaxLength(int omaxLength)
 	{
-		maxLength = omaxLength;
+		if (omaxLength < length_)
+		{
+			throw std::invalid_argument("New maximum length is less than current length.");
+		}
+		maxLength_ = omaxLength;
+		coefficients_.resize(maxLength_, 0);
 	}
 
 	void BigNumber::SetCoefficients(BaseType *ocoefficients)
 	{
-		std::copy(ocoefficients, ocoefficients + length, coefficients.get());
+		std::copy(ocoefficients, ocoefficients + length_, coefficients_.begin());
 	}
 	// Оператор присваивания
 	BigNumber &BigNumber::operator=(const BigNumber &other)
 	{
 		if (this != &other)
 		{
-			maxLength = other.maxLength;
-			length = other.length;
-			coefficients = std::make_unique<BaseType[]>(maxLength);
-			std::copy(other.coefficients.get(), other.coefficients.get() + length, coefficients.get());
+			maxLength_ = other.maxLength_;
+			length_ = other.length_;
+			coefficients_ = other.coefficients_;
 		}
 		return *this;
 	}
@@ -87,12 +93,12 @@ namespace big_number
 	// Печать числа в шестнадцатеричном формате
 	void BigNumber::PrintHex() const
 	{
-		int i = length - 1;
+		int i = length_ - 1;
 		while (i >= 0)
 		{
 			std::cout.width(BASE_SIZE / 4);
 			std::cout.fill('0');
-			std::cout << std::hex << static_cast<int>(coefficients[i]) << " ";
+			std::cout << std::hex << static_cast<int>(coefficients_[i]) << " ";
 			i--;
 		}
 	}
@@ -104,13 +110,13 @@ namespace big_number
 		std::getline(std::cin, inputString);
 		int inputStringLength = inputString.length();
 		int k = 0, j = 0;
-		length = (inputStringLength - 1) / (BASE_SIZE / 4) + 1;
-		maxLength = length;
-		coefficients = std::make_unique<BaseType[]>(maxLength);
+		length_ = (inputStringLength - 1) / (BASE_SIZE / 4) + 1;
+		maxLength_ = length_;
+		coefficients_.resize(maxLength_);
 		int i = 0;
-		while (i < length)
+		while (i < length_)
 		{
-			coefficients[i] = 0;
+			coefficients_[i] = 0;
 			i++;
 		}
 
@@ -136,7 +142,7 @@ namespace big_number
 				throw std::invalid_argument("Invalid arguments.");
 			}
 
-			coefficients[j] |= temp << k;
+			coefficients_[j] |= temp << k;
 			k += 4;
 			if (k >= BASE_SIZE)
 			{
@@ -151,40 +157,40 @@ namespace big_number
 	// Оператор сложения
 	BigNumber BigNumber::operator+(const BigNumber &other) const
 	{
-		int maxOfLengths = std::max(length, other.length);
-		int minOfLengths = std::min(length, other.length);
+		int maxOfLengths = std::max(length_, other.length_);
+		int minOfLengths = std::min(length_, other.length_);
 		int sumLength = maxOfLengths + 1; // Инициализация с учетом возможного переноса
 		BigNumber sumNumber(sumLength);
 		BaseType carry = 0;
 		int i = 0;
 		while (i < minOfLengths)
 		{
-			DoubleBaseType tempSum = (DoubleBaseType)coefficients[i] + (DoubleBaseType)other.coefficients[i] + carry;
-			sumNumber.coefficients[i] = (BaseType)tempSum;
+			DoubleBaseType tempSum = (DoubleBaseType)coefficients_[i] + (DoubleBaseType)other.coefficients_[i] + carry;
+			sumNumber.coefficients_[i] = (BaseType)tempSum;
 			carry = tempSum >> BASE_SIZE;
 			i++;
 		}
 
-		while (i < length)
+		while (i < length_)
 		{
-			DoubleBaseType tempSum = (DoubleBaseType)coefficients[i] + carry;
-			sumNumber.coefficients[i] = (BaseType)tempSum;
+			DoubleBaseType tempSum = (DoubleBaseType)coefficients_[i] + carry;
+			sumNumber.coefficients_[i] = (BaseType)tempSum;
 			carry = tempSum >> BASE_SIZE;
 			i++;
 		}
 
-		while (i < other.length)
+		while (i < other.length_)
 		{
-			DoubleBaseType tempSum = (DoubleBaseType)other.coefficients[i] + carry;
-			sumNumber.coefficients[i] = (BaseType)tempSum;
+			DoubleBaseType tempSum = (DoubleBaseType)other.coefficients_[i] + carry;
+			sumNumber.coefficients_[i] = (BaseType)tempSum;
 			carry = tempSum >> BASE_SIZE;
 			i++;
 		}
 
-		sumNumber.coefficients[maxOfLengths] = carry; // Установка старшего разряда
+		sumNumber.coefficients_[maxOfLengths] = carry; // Установка старшего разряда
 
 		// Корректировка длины результата
-		sumNumber.length = sumLength;
+		sumNumber.length_ = sumLength;
 		sumNumber.NormalizeLength();
 
 		return sumNumber;
@@ -208,15 +214,15 @@ namespace big_number
 		int j = 0;
 		int borrow = 0; // Коэффициент заема
 		DoubleBaseType temp;
-		BigNumber subtractionNum(length);
-		while (j < other.length)
+		BigNumber subtractionNum(length_);
+		while (j < other.length_)
 		{
 			// Вычисляем разность с учетом заема
-			temp = ((DoubleBaseType)1 << BASE_SIZE) | coefficients[j];
-			temp = temp - (DoubleBaseType)other.coefficients[j] - borrow;
+			temp = ((DoubleBaseType)1 << BASE_SIZE) | coefficients_[j];
+			temp = temp - (DoubleBaseType)other.coefficients_[j] - borrow;
 
 			// Записываем значение разности
-			subtractionNum.coefficients[j] = (BaseType)temp;
+			subtractionNum.coefficients_[j] = (BaseType)temp;
 
 			// Определяем новый коэффициент заема
 			borrow = !(temp >> BASE_SIZE);
@@ -224,14 +230,14 @@ namespace big_number
 			j++;
 		}
 
-		while (j < length)
+		while (j < length_)
 		{
 			// Учитываем заем и вычитаем его
-			temp = ((DoubleBaseType)1 << BASE_SIZE) | coefficients[j];
+			temp = ((DoubleBaseType)1 << BASE_SIZE) | coefficients_[j];
 			temp -= borrow;
 
 			// Записываем значение
-			subtractionNum.coefficients[j] = (BaseType)temp;
+			subtractionNum.coefficients_[j] = (BaseType)temp;
 
 			// Определяем новый коэффициент заема
 			borrow = !(temp >> BASE_SIZE);
@@ -240,7 +246,7 @@ namespace big_number
 		}
 
 		// Корректируем фактическую длину результата
-		subtractionNum.length = length;
+		subtractionNum.length_ = length_;
 		subtractionNum.NormalizeLength();
 
 		return subtractionNum; // Возвращаем результат
@@ -258,18 +264,18 @@ namespace big_number
 	{
 		int j = 0;
 		BaseType carry = 0;
-		BigNumber resNumber(length + 1); // Создаем объект для результата с максимально возможной длиной
+		BigNumber resNumber(length_ + 1); // Создаем объект для результата с максимально возможной длиной
 		DoubleBaseType tmp;
 
-		while (j < length)
+		while (j < length_)
 		{
-			tmp = (DoubleBaseType)coefficients[j] * (DoubleBaseType)multiplier + (DoubleBaseType)carry;
-			resNumber.coefficients[j] = (BaseType)tmp;
+			tmp = (DoubleBaseType)coefficients_[j] * (DoubleBaseType)multiplier + (DoubleBaseType)carry;
+			resNumber.coefficients_[j] = (BaseType)tmp;
 			carry = (BaseType)(tmp >> BASE_SIZE);
 			j++;
 		}
-		resNumber.coefficients[j] = carry;
-		resNumber.length = length + 1;
+		resNumber.coefficients_[j] = carry;
+		resNumber.length_ = length_ + 1;
 		resNumber.NormalizeLength();
 		return resNumber;
 	}
@@ -284,31 +290,31 @@ namespace big_number
 	// Умножение на другой объект BigNumber
 	BigNumber BigNumber::operator*(const BigNumber &other) const
 	{
-		if (other.length == 1 && other.coefficients[0] == 0)
+		if (other.length_ == 1 && other.coefficients_[0] == 0)
 		{
 			return BigNumber();
 		}
-		BigNumber resNumber(length + other.length);
+		BigNumber resNumber(length_ + other.length_);
 		DoubleBaseType tmp;
 		int j = 0;
-		while (j < other.length)
+		while (j < other.length_)
 		{
-			if (other.coefficients[j] != 0)
+			if (other.coefficients_[j] != 0)
 			{
 				BaseType carry = 0;
 				int i = 0;
-				while (i < length)
+				while (i < length_)
 				{
-					tmp = (DoubleBaseType)coefficients[i] * (DoubleBaseType)other.coefficients[j] + (DoubleBaseType)resNumber.coefficients[i + j] + (DoubleBaseType)carry;
-					resNumber.coefficients[i + j] = (BaseType)tmp;
+					tmp = (DoubleBaseType)coefficients_[i] * (DoubleBaseType)other.coefficients_[j] + (DoubleBaseType)resNumber.coefficients_[i + j] + (DoubleBaseType)carry;
+					resNumber.coefficients_[i + j] = (BaseType)tmp;
 					carry = (BaseType)(tmp >> BASE_SIZE);
 					i++;
 				}
-				resNumber.coefficients[length + j] = carry;
+				resNumber.coefficients_[length_ + j] = carry;
 			}
 			j++;
 		}
-		resNumber.length = length + other.length;
+		resNumber.length_ = length_ + other.length_;
 		resNumber.NormalizeLength();
 		return resNumber;
 	}
@@ -322,20 +328,24 @@ namespace big_number
 
 	// Оператор деления на BaseType
 	BigNumber BigNumber::operator/(const BaseType &number) const
-	{ // переопределить j
+	{
+		if (number == 0)
+		{
+			throw std::invalid_argument("Division by zero.");
+		}
 		int j = 0;
 		DoubleBaseType tmp = 0;
 		BaseType left = 0;
-		BigNumber resNumber(length);
-		while (j < length)
+		BigNumber resNumber(length_);
+		while (j < length_)
 		{
-			tmp = ((DoubleBaseType)left << BASE_SIZE) + (DoubleBaseType)coefficients[length - 1 - j];
-			resNumber.coefficients[length - 1 - j] = (BaseType)(tmp / (DoubleBaseType)number);
+			tmp = ((DoubleBaseType)left << BASE_SIZE) + (DoubleBaseType)coefficients_[length_ - 1 - j];
+			resNumber.coefficients_[length_ - 1 - j] = (BaseType)(tmp / (DoubleBaseType)number);
 			left = (BaseType)(tmp % (DoubleBaseType)number);
 			j++;
 		}
 
-		resNumber.length = length;
+		resNumber.length_ = length_;
 		resNumber.NormalizeLength();
 		return resNumber;
 	}
@@ -348,21 +358,21 @@ namespace big_number
 		BaseType left = 0;
 		BigNumber resNumber(1);
 
-		while (j < length)
+		while (j < length_)
 		{
-			tmp = ((DoubleBaseType)left << BASE_SIZE) + (DoubleBaseType)coefficients[length - 1 - j];
+			tmp = ((DoubleBaseType)left << BASE_SIZE) + (DoubleBaseType)coefficients_[length_ - 1 - j];
 			left = (BaseType)(tmp % (DoubleBaseType)number);
 			j++;
 		}
 
-		resNumber.coefficients[0] = left;
+		resNumber.coefficients_[0] = left;
 		// resNumber.NormalizeLength();
 
 		return resNumber;
 	}
 	BigNumber BigNumber::operator/(const BigNumber &divisor) const
 	{
-		if (divisor.length == 1 && divisor.coefficients[0] == 0)
+		if (divisor.length_ == 0 || (divisor.length_ == 1 && divisor.coefficients_[0] == 0))
 		{
 			throw std::invalid_argument("Division by zero.");
 		}
@@ -373,14 +383,14 @@ namespace big_number
 			return result;
 		}
 
-		if (divisor.length == 1)
+		if (divisor.length_ == 1)
 		{
-			return *this / divisor.coefficients[0];
+			return *this / divisor.coefficients_[0];
 		}
 
 		DoubleBaseType base = ((DoubleBaseType)1 << BASE_SIZE);
-		DoubleBaseType d = base / (DoubleBaseType)(divisor.coefficients[divisor.length - 1] + (BaseType)1);
-		int j = length - divisor.length;
+		DoubleBaseType d = base / (DoubleBaseType)(divisor.coefficients_[divisor.length_ - 1] + (BaseType)1);
+		int j = length_ - divisor.length_;
 
 		BigNumber dividend(*this);
 		dividend *= d;
@@ -388,31 +398,31 @@ namespace big_number
 		divisor_copy *= d;
 
 		BigNumber result(j + 1);
-		result.length = j + 1;
+		result.length_ = j + 1;
 
 		while (j >= 0)
 		{
-			DoubleBaseType q = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients[j + divisor_copy.length]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 1])) / (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 1])); // можно ускорить сдвигом
-			DoubleBaseType r = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients[j + divisor_copy.length]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 1])) % (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 1]));
+			DoubleBaseType q = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) / (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1])); // можно ускорить сдвигом
+			DoubleBaseType r = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) % (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]));
 
-			if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 2])))
+			if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
 			{
 				q--;
-				r = (DoubleBaseType)(r) + (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 1]);
+				r = (DoubleBaseType)(r) + (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]);
 				if ((DoubleBaseType)(r) < base)
 				{
-					if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 2])))
+					if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
 					{
 						q--;
 					}
 				}
 			}
 
-			BigNumber u(divisor_copy.length + 1);
-			u.length = divisor_copy.length + 1;
-			for (int i = 0; i < divisor_copy.length + 1; i++)
+			BigNumber u(divisor_copy.length_ + 1);
+			u.length_ = divisor_copy.length_ + 1;
+			for (int i = 0; i < divisor_copy.length_ + 1; i++)
 			{
-				u.coefficients[i] = dividend.coefficients[j + i];
+				u.coefficients_[i] = dividend.coefficients_[j + i];
 			}
 
 			if (u < divisor_copy * (BaseType)(q))
@@ -421,11 +431,11 @@ namespace big_number
 			}
 
 			u = u - divisor_copy * (BaseType)(q);
-			result.coefficients[j] = (BaseType)(q);
+			result.coefficients_[j] = (BaseType)(q);
 
-			for (int i = 0; i < divisor_copy.length + 1; i++)
+			for (int i = 0; i < divisor_copy.length_ + 1; i++)
 			{
-				dividend.coefficients[j + i] = u.coefficients[i];
+				dividend.coefficients_[j + i] = u.coefficients_[i];
 			}
 
 			j--;
@@ -438,7 +448,7 @@ namespace big_number
 
 	BigNumber BigNumber::operator%(const BigNumber &divisor) const
 	{
-		if (divisor.length == 1 && divisor.coefficients[0] == 0)
+		if (divisor.length_ == 0 || (divisor.length_ == 1 && divisor.coefficients_[0] == 0))
 		{
 			throw std::invalid_argument("Division by zero.");
 		}
@@ -448,15 +458,15 @@ namespace big_number
 			return *this;
 		}
 
-		if (divisor.length == 1)
+		if (divisor.length_ == 1)
 		{
-			return *this % divisor.coefficients[0];
+			return *this % divisor.coefficients_[0];
 		}
 
-		int result_len = length - divisor.length;
+		int result_len = length_ - divisor.length_;
 		int base_size = BASE_SIZE;
 		DoubleBaseType base = ((DoubleBaseType)1 << base_size);
-		BaseType d = (BaseType)((DoubleBaseType)base / (DoubleBaseType)(divisor.coefficients[divisor.length - 1] + 1));
+		BaseType d = (BaseType)((DoubleBaseType)base / (DoubleBaseType)(divisor.coefficients_[divisor.length_ - 1] + 1));
 		int j = result_len;
 		int k = 0;
 
@@ -465,43 +475,43 @@ namespace big_number
 		BigNumber divisor_copy(divisor);
 		divisor_copy *= d;
 
-		if (dividend.length == length)
+		if (dividend.length_ == length_)
 		{
-			dividend.maxLength++;
-			dividend.length = maxLength;
-			dividend.coefficients = std::make_unique<BaseType[]>(maxLength);
-			for (int i = 0; i < length; i++)
+			dividend.maxLength_++;
+			dividend.length_ = maxLength_;
+			dividend.coefficients_.resize(maxLength_);
+			for (int i = 0; i < length_; i++)
 			{
-				dividend.coefficients[i] = coefficients[i];
+				dividend.coefficients_[i] = coefficients_[i];
 			}
 			dividend *= d;
-			dividend.length++;
-			dividend.coefficients[dividend.length - 1] = 0;
+			dividend.length_++;
+			dividend.coefficients_[dividend.length_ - 1] = 0;
 		}
 
 		while (j >= 0)
 		{
-			DoubleBaseType q = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients[j + divisor_copy.length]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 1])) / (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 1]));
-			DoubleBaseType r = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients[j + divisor_copy.length]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 1])) % (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 1]));
+			DoubleBaseType q = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) / (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]));
+			DoubleBaseType r = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) % (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]));
 
-			if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 2])))
+			if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
 			{
 				q--;
-				r = (DoubleBaseType)(r) + (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 1]);
+				r = (DoubleBaseType)(r) + (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]);
 				if ((DoubleBaseType)(r) < base)
 				{
-					if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients[divisor_copy.length - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients[j + divisor_copy.length - 2])))
+					if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
 					{
 						q--;
 					}
 				}
 			}
 
-			BigNumber u(divisor_copy.length + 1);
-			u.length = divisor_copy.length + 1;
-			for (int i = 0; i < divisor_copy.length + 1; i++)
+			BigNumber u(divisor_copy.length_ + 1);
+			u.length_ = divisor_copy.length_ + 1;
+			for (int i = 0; i < divisor_copy.length_ + 1; i++)
 			{
-				u.coefficients[i] = dividend.coefficients[j + i];
+				u.coefficients_[i] = dividend.coefficients_[j + i];
 			}
 
 			if (u < divisor_copy * (BaseType)(q))
@@ -511,9 +521,9 @@ namespace big_number
 
 			u = u - (divisor_copy * (BaseType)(q));
 
-			for (int i = 0; i < divisor_copy.length + 1; i++)
+			for (int i = 0; i < divisor_copy.length_ + 1; i++)
 			{
-				dividend.coefficients[j + i] = u.coefficients[i];
+				dividend.coefficients_[j + i] = u.coefficients_[i];
 			}
 
 			j--;
@@ -526,13 +536,13 @@ namespace big_number
 
 	bool BigNumber::operator==(const BigNumber &other) const
 	{
-		if (length != other.length)
+		if (length_ != other.length_)
 		{
 			return false;
 		}
-		for (int i = 0; i < length; ++i)
+		for (int i = 0; i < length_; ++i)
 		{
-			if (coefficients[i] != other.coefficients[i])
+			if (coefficients_[i] != other.coefficients_[i])
 			{
 				return false;
 			}
@@ -542,13 +552,13 @@ namespace big_number
 
 	bool BigNumber::operator!=(const BigNumber &other) const
 	{
-		if (length != other.length)
+		if (length_ != other.length_)
 		{
 			return true;
 		}
-		for (int i = 0; i < length; ++i)
+		for (int i = 0; i < length_; ++i)
 		{
-			if (coefficients[i] != other.coefficients[i])
+			if (coefficients_[i] != other.coefficients_[i])
 			{
 				return true;
 			}
@@ -558,21 +568,21 @@ namespace big_number
 
 	bool BigNumber::operator<(const BigNumber &other) const
 	{
-		if (length < other.length)
+		if (length_ < other.length_)
 		{
 			return true;
 		}
-		if (length > other.length)
+		if (length_ > other.length_)
 		{
 			return false;
 		}
-		for (int i = length - 1; i >= 0; --i)
+		for (int i = length_ - 1; i >= 0; --i)
 		{
-			if (coefficients[i] < other.coefficients[i])
+			if (coefficients_[i] < other.coefficients_[i])
 			{
 				return true;
 			}
-			if (coefficients[i] > other.coefficients[i])
+			if (coefficients_[i] > other.coefficients_[i])
 			{
 				return false;
 			}
@@ -582,22 +592,22 @@ namespace big_number
 
 	bool BigNumber::operator>(const BigNumber &other) const
 	{
-		if (length > other.length)
+		if (length_ > other.length_)
 		{
 			return true;
 		}
 
-		if (length < other.length)
+		if (length_ < other.length_)
 		{
 			return false;
 		}
-		for (int i = length - 1; i >= 0; --i)
+		for (int i = length_ - 1; i >= 0; --i)
 		{
-			if (coefficients[i] > other.coefficients[i])
+			if (coefficients_[i] > other.coefficients_[i])
 			{
 				return true;
 			}
-			if (coefficients[i] < other.coefficients[i])
+			if (coefficients_[i] < other.coefficients_[i])
 			{
 				return false;
 			}
@@ -607,21 +617,21 @@ namespace big_number
 
 	bool BigNumber::operator<=(const BigNumber &other) const
 	{
-		if (length > other.length)
+		if (length_ > other.length_)
 		{
 			return false;
 		}
-		if (length < other.length)
+		if (length_ < other.length_)
 		{
 			return true;
 		}
-		for (int i = length - 1; i >= 0; --i)
+		for (int i = length_ - 1; i >= 0; --i)
 		{
-			if (coefficients[i] < other.coefficients[i])
+			if (coefficients_[i] < other.coefficients_[i])
 			{
 				return true;
 			}
-			if (coefficients[i] > other.coefficients[i])
+			if (coefficients_[i] > other.coefficients_[i])
 			{
 				return false;
 			}
@@ -631,21 +641,21 @@ namespace big_number
 
 	bool BigNumber::operator>=(const BigNumber &other) const
 	{
-		if (length < other.length)
+		if (length_ < other.length_)
 		{
 			return false;
 		}
-		if (length > other.length)
+		if (length_ > other.length_)
 		{
 			return true;
 		}
-		for (int i = length - 1; i >= 0; --i)
+		for (int i = length_ - 1; i >= 0; --i)
 		{
-			if (coefficients[i] > other.coefficients[i])
+			if (coefficients_[i] > other.coefficients_[i])
 			{
 				return true;
 			}
-			if (coefficients[i] < other.coefficients[i])
+			if (coefficients_[i] < other.coefficients_[i])
 			{
 				return false;
 			}
@@ -674,7 +684,7 @@ namespace big_number
 
 			BigNumber newNum;
 			auto newNumCoefficients = newNum.GetCoefficients();
-			newNum.GetCoefficients()[0] = (BaseType)t;
+			newNumCoefficients[0] = (BaseType)t;
 			temp += newNum;
 			j++;
 		}

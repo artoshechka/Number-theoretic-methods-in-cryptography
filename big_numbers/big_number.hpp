@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <memory>
+#include <vector>
 
 using BaseType = unsigned int;				   ///< Основной тип для хранения коэффициентов
 using DoubleBaseType = unsigned long long int; ///< Тип для хранения удвоенных значений
@@ -19,9 +20,9 @@ namespace big_number
 	class BigNumber
 	{
 	protected:
-		std::unique_ptr<BaseType[]> coefficients; ///< Коэффициенты числа
-		int length;								  ///< Фактическая длина числа (количество значащих коэффициентов)
-		int maxLength;							  ///< Максимально возможная длина массива коэффициентов
+		std::vector<BaseType> coefficients_; ///< Коэффициенты числа
+		int length_;						 ///< Фактическая длина числа (количество значащих коэффициентов)
+		int maxLength_;						 ///< Максимально возможная длина массива коэффициентов
 
 	public:
 		/// @brief Конструктор, создающий число с заданной максимальной длиной и начальным значением
@@ -48,12 +49,14 @@ namespace big_number
 		/// @return Указатель на массив коэффициентов
 		BaseType *GetCoefficients();
 
-		/// @brief Устанавливает фактическую длину числа
+		/// @brief Устанавливает текущую длину числа
 		/// @param newLength Новое значение длины
+		/// @throw std::invalid_argument если newLength больше maxLength
 		void SetLength(int newLength);
 
 		/// @brief Устанавливает максимальную длину числа
 		/// @param newMaxLength Новая максимальная длина
+		/// @throw std::invalid_argument если newMaxLength меньше текущей длины
 		void SetMaxLength(int newMaxLength);
 
 		/// @brief Устанавливает новые коэффициенты
@@ -141,6 +144,7 @@ namespace big_number
 		/// @brief Оператор деления на скаляр
 		/// @param value Число, на которое делим
 		/// @return Частное от деления
+		/// @throw std::invalid_argument если value равно нулю
 		BigNumber operator/(const BaseType &value) const;
 
 		/// @brief Оператор остатка от деления на скаляр
@@ -151,6 +155,7 @@ namespace big_number
 		/// @brief Оператор деления на большое число
 		/// @param other Второй операнд
 		/// @return Частное от деления
+		/// @throw std::invalid_argument если other равно нулю
 		BigNumber operator/(const BigNumber &other) const;
 
 		/// @brief Оператор остатка от деления на большое число

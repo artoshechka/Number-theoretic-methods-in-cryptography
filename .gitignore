@@ -1,0 +1,55 @@
+# Файлы, игнорируемые в C++ проектах
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.lo
+*.lai
+*.la
+*.suo
+*.pdb
+*.idb
+*.ipch
+*.aps
+*.ncb
+*.sdf
+*.sqlite
+*.bak
+
+# Каталоги для сборки и временные файлы
+bin/
+build/
+Debug/
+Release/
+CMakeFiles/
+CMakeCache.txt
+*.VC.db
+*.VC.opendb
+
+# Файлы кэша CMake
+CMakeLists.txt.user
+compile_commands.json
+Makefile
+cmake_install.cmake
+
+# Файлы, специфичные для VS Code
+.vscode/
+*.code-workspace
+
+# Файлы CLion и Qt Creator (если используешь)
+.idea/
+*.pro.user
+*.pro.user.*
+*.qmake.stash
+
+# Файлы, игнорируемые Git LFS
+*.tlog
+*.ipdb
+*.iobj
+*.cache
+*.dmp

@@ -39,6 +39,23 @@ void TestConstructorsAndIO()
     std::cout << "[+] TestConstructorsAndIO PASSED\n";
 }
 
+void TestConstructorFromNumber()
+{
+    // Тест для нового конструктора из числа
+    BigNumber num0(0ULL);
+    assert(toString(num0) == "0");
+
+    BigNumber num1(123456789ULL);
+    assert(toString(num1) == "123456789");
+
+    unsigned long long bigVal = 9876543210123456789ULL;
+    BigNumber num2(bigVal);
+    // Сравниваем со строковым представлением числа (используем std::to_string)
+    assert(toString(num2) == std::to_string(bigVal));
+
+    std::cout << "[+] TestConstructorFromNumber PASSED\n";
+}
+
 void TestArithmeticOperations()
 {
     BigNumber a = fromString("1000");
@@ -141,7 +158,6 @@ void stressTest()
         // Проверяем, что остаток меньше делителя
         assert(D < B);
 
-        // Выводим прогресс каждые 1000 итераций
         if (i % 1000 == 0)
         {
             std::cout << "Iteration: " << i << " / " << iterations << std::endl;
@@ -154,9 +170,11 @@ void stressTest()
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
+
     stressTest();
 
     TestConstructorsAndIO();
+    TestConstructorFromNumber();
     TestArithmeticOperations();
     TestComparisonOperations();
     TestEdgeCases();

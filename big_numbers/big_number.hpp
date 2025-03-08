@@ -11,8 +11,8 @@
 #include <memory>
 #include <vector>
 
-using BaseType = unsigned char;		   ///< Основной тип для хранения коэффициентов
-using DoubleBaseType = unsigned short; ///< Тип для хранения удвоенных значений
+using BaseType = unsigned int;				   ///< Основной тип для хранения коэффициентов
+using DoubleBaseType = unsigned long long int; ///< Тип для хранения удвоенных значений
 
 constexpr int BASE_SIZE = sizeof(BaseType) * 8;		   ///< Размер BaseType в битах
 constexpr int DBASE_SIZE = sizeof(DoubleBaseType) * 8; ///< Размер DoubleBaseType в битах
@@ -37,9 +37,13 @@ namespace big_number
 		/// @param other Объект для копирования
 		BigNumber(const BigNumber &other);
 
-		/// @brief Конструктор из строки (десятичное представление)
+		/// @brief Конструктор из строки (десятичное представление числа)
 		/// @param s Строка с десятичным представлением числа
 		explicit BigNumber(const std::string &s);
+
+		/// @brief Конструктор из числа (unsigned long long)
+		/// @param value Число, которое необходимо представить в виде BigNumber
+		explicit BigNumber(unsigned long long value);
 
 		/// @brief Деструктор
 		~BigNumber() = default;

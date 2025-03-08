@@ -1,5 +1,6 @@
 #include "big_number.hpp"
 #include <sstream>
+
 namespace big_number
 {
 
@@ -20,13 +21,40 @@ namespace big_number
 	{
 	}
 
-	// Конструктор, принимающий строку (десятичное представление)
+	// Конструктор из строки (десятичное представление)
 	BigNumber::BigNumber(const std::string &s)
-		: BigNumber(s.size()) // используем конструктор с max_length = размер строки (это приблизительная оценка)
+		: BigNumber(s.size()) // используем конструктор с max_length, приблизительно равным размеру строки
 	{
 		std::istringstream iss(s);
 		iss >> *this;
 	}
+
+	// Новый конструктор из числа
+	BigNumber::BigNumber(unsigned long long value)
+		: BigNumber(1, 0) // инициализируем нулём; maxLength_ изначально равен 1
+	{
+		// Очищаем вектор и заполняем коэффициенты, пока value > 0.
+		coefficients_.clear();
+		if (value == 0)
+		{
+			coefficients_.push_back(0);
+			length_ = 1;
+			maxLength_ = 1;
+		}
+		else
+		{
+			DoubleBaseType base = static_cast<DoubleBaseType>(1) << BASE_SIZE;
+			while (value > 0)
+			{
+				BaseType coef = static_cast<BaseType>(value % base);
+				coefficients_.push_back(coef);
+				value /= base;
+			}
+			length_ = static_cast<int>(coefficients_.size());
+			maxLength_ = length_;
+		}
+	}
+
 	// Геттеры
 	int BigNumber::GetLength()
 	{
@@ -81,8 +109,10 @@ namespace big_number
 		if (length_ != other.length_)
 			return false;
 		for (int i = 0; i < length_; ++i)
+		{
 			if (coefficients_[i] != other.coefficients_[i])
 				return false;
+		}
 		return true;
 	}
 
@@ -96,8 +126,10 @@ namespace big_number
 		if (length_ != other.length_)
 			return length_ < other.length_;
 		for (int i = length_ - 1; i >= 0; --i)
+		{
 			if (coefficients_[i] != other.coefficients_[i])
 				return coefficients_[i] < other.coefficients_[i];
+		}
 		return false;
 	}
 
@@ -294,32 +326,26 @@ namespace big_number
 
 	// -------------------------
 	// Реализация алгоритма Кнута для деления (DivideKnuth)
-	// Реализована как статический метод, поэтому имеет доступ к защищённым членам
 	// -------------------------
 	std::pair<BigNumber, BigNumber> BigNumber::DivideKnuth(const BigNumber &u_orig, const BigNumber &v_orig)
 	{
-		// Проверка деления на ноль
 		if ((v_orig.length_ == 1) && (v_orig.coefficients_[0] == 0))
 			throw std::invalid_argument("Division by zero.");
 
-		// Если делимое меньше делителя, частное = 0, остаток = делимое
 		if (u_orig < v_orig)
 			return {BigNumber(u_orig.maxLength_), u_orig};
 
-		// Если делитель состоит из одного коэффициента, используем упрощённое деление
 		if (v_orig.length_ == 1)
 			return {u_orig / v_orig.coefficients_[0], u_orig % v_orig.coefficients_[0]};
 
-		int n = v_orig.length_;		// число коэффициентов в делителе
-		int m = u_orig.length_ - n; // разница длин делимого и делителя
+		int n = v_orig.length_;
+		int m = u_orig.length_ - n;
 		DoubleBaseType base = (static_cast<DoubleBaseType>(1) << BASE_SIZE);
 
-		// Шаг D1: Нормализация.
 		BaseType d = static_cast<BaseType>(base / (v_orig.coefficients_[n - 1] + 1));
 		BigNumber u = u_orig * d;
 		BigNumber v = v_orig * d;
 
-		// Гарантируем, что u имеет дополнительный коэффициент
 		if (u.length_ == u_orig.length_)
 		{
 			u.coefficients_.push_back(0);
@@ -330,7 +356,6 @@ namespace big_number
 		BigNumber Q(m + 1);
 		Q.length_ = m + 1;
 
-		// Шаг D3: Основной цикл
 		for (int j = m; j >= 0; --j)
 		{
 			DoubleBaseType numerator = (static_cast<DoubleBaseType>(u.coefficients_[j + n]) << BASE_SIZE) +
@@ -338,7 +363,6 @@ namespace big_number
 			BaseType qhat = static_cast<BaseType>(numerator / v.coefficients_[n - 1]);
 			BaseType rhat = static_cast<BaseType>(numerator % v.coefficients_[n - 1]);
 
-			// Корректировка предполагаемого частного
 			while ((qhat == static_cast<BaseType>(base)) ||
 				   (static_cast<DoubleBaseType>(qhat) * v.coefficients_[n - 2] >
 					((static_cast<DoubleBaseType>(rhat) << BASE_SIZE) + u.coefficients_[j + n - 2])))
@@ -387,7 +411,6 @@ namespace big_number
 		}
 		Q.NormalizeLength();
 
-		// Шаг D4: Денормализация остатка
 		BigNumber R(n);
 		R.length_ = n;
 		for (int i = 0; i < n; ++i)
@@ -398,7 +421,6 @@ namespace big_number
 		return {Q, R};
 	}
 
-	// Деление на большое число с использованием алгоритма Кнута
 	BigNumber BigNumber::operator/(const BigNumber &other) const
 	{
 		auto divRes = BigNumber::DivideKnuth(*this, other);

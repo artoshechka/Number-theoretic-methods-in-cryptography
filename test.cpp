@@ -1,47 +1,166 @@
-#include "big_number.hpp"
-#include <iostream>
 #include <cassert>
+#include <sstream>
+#include <iostream>
+#include "big_number.hpp"
 
 using namespace big_number;
-void test()
+
+// Вспомогательная функция для получения строкового представления BigNumber через operator<<.
+std::string toString(const BigNumber &num)
 {
-    srand(time(NULL));
-    int M = 1000;
-    int T = 1000;
+    std::ostringstream oss;
+    oss << num;
+    return oss.str();
+}
 
-    BigNumber A;
-    BigNumber B;
-    BigNumber C;
-    BigNumber D;
+// Вспомогательная функция для создания BigNumber из строки (десятичное представление)
+BigNumber fromString(const std::string &s)
+{
+    std::istringstream iss(s);
+    BigNumber num;
+    iss >> num;
+    return num;
+}
 
-    do
+void TestConstructorsAndIO()
+{
+    // Тест: конструктор из строки (новый конструктор)
+    BigNumber num1("1234567890");
+    assert(toString(num1) == "1234567890");
+
+    // Тест: operator>> с числом "0"
+    BigNumber num0;
     {
+        std::istringstream iss("0");
+        iss >> num0;
+    }
+    assert(toString(num0) == "0");
+
+    std::cout << "[+] TestConstructorsAndIO PASSED\n";
+}
+
+void TestArithmeticOperations()
+{
+    BigNumber a = fromString("1000");
+    BigNumber b = fromString("200");
+
+    // Сложение: 1000 + 200 = 1200
+    BigNumber sum = a + b;
+    assert(toString(sum) == "1200");
+
+    // Вычитание: 1000 - 200 = 800
+    BigNumber diff = a - b;
+    assert(toString(diff) == "800");
+
+    // Умножение: 1000 * 200 = 200000
+    BigNumber prod = a * b;
+    assert(toString(prod) == "200000");
+
+    // Деление: 1000 / 200 = 5
+    BigNumber quot = a / b;
+    assert(toString(quot) == "5");
+
+    // Остаток: 1000 % 200 = 0
+    BigNumber rem = a % b;
+    assert(toString(rem) == "0");
+
+    // Тест деления на скаляр
+    BigNumber c = fromString("9876543210");
+    BigNumber d = c / 10;
+    assert(toString(d) == "987654321");
+    BigNumber mod = c % 10;
+    assert(toString(mod) == "0");
+
+    std::cout << "[+] TestArithmeticOperations PASSED\n";
+}
+
+void TestComparisonOperations()
+{
+    BigNumber a = fromString("12345");
+    BigNumber b = fromString("54321");
+
+    assert(a < b);
+    assert(b > a);
+    assert(a != b);
+
+    BigNumber c = fromString("12345");
+    assert(a == c);
+    assert(a <= c);
+    assert(a >= c);
+
+    std::cout << "[+] TestComparisonOperations PASSED\n";
+}
+
+void TestEdgeCases()
+{
+    // Нулевые операции
+    BigNumber zero = fromString("0");
+    BigNumber one = fromString("1");
+    assert((zero + zero) == zero);
+    assert((zero * zero) == zero);
+    assert((one / one) == one);
+    assert((one % one) == zero);
+
+    // Большие числа
+    BigNumber big1 = fromString("999999999999999999999");
+    BigNumber big2 = fromString("1");
+    BigNumber sum = big1 + big2;
+    assert(sum == fromString("1000000000000000000000"));
+
+    BigNumber diff = big1 - big2;
+    assert(diff == fromString("999999999999999999998"));
+
+    std::cout << "[+] TestEdgeCases PASSED\n";
+}
+
+void stressTest()
+{
+    // Количество итераций – можно увеличить для более сильного стресса
+    const int iterations = 1000000;
+    // Максимальная длина для генерации случайных чисел
+    const int M = 10000;
+
+    for (int i = 0; i < iterations; ++i)
+    {
+        // Генерируем случайные длины для чисел A и B
         int n = rand() % M + 1;
         int m = rand() % M + 1;
 
-        BigNumber E(n, 1);
-        BigNumber G(m, 1);
+        // Создаем два случайных больших числа с инициализацией (параметр 1)
+        BigNumber A(n, 1);
+        BigNumber B(m, 1);
 
-        A = E;
+        // Выполняем операцию деления и взятия остатка
+        BigNumber C = A / B;
+        BigNumber D = A % B;
 
-        B = G;
+        // Проверяем, что выполняется свойство: A == C * B + D
+        assert(A == C * B + D);
+        // Проверяем альтернативное равенство
+        assert(A - D == C * B);
+        // Проверяем, что остаток меньше делителя
+        assert(D < B);
 
-        C = A / B;
-        D = A % B;
+        // Выводим прогресс каждые 1000 итераций
+        if (i % 1000 == 0)
+        {
+            std::cout << "Iteration: " << i << " / " << iterations << std::endl;
+        }
+    }
 
-        std::cout << "m: " << m << " ";
-        std::cout << "n: " << n << " ";
-        std::cout << "T: " << T << std::endl;
-
-    } while (A == C * B + D && A - D == C * B && D < B && --T);
-
-    std::cout << T << std::endl;
+    std::cout << "Stress test passed (" << iterations << " iterations)" << std::endl;
 }
 
-using namespace std;
 int main()
 {
-    srand(time(NULL));
-    test();
+    srand(static_cast<unsigned int>(time(NULL)));
+    stressTest();
+
+    TestConstructorsAndIO();
+    TestArithmeticOperations();
+    TestComparisonOperations();
+    TestEdgeCases();
+
+    std::cout << "All tests passed successfully!\n";
     return 0;
 }

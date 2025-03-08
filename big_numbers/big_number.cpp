@@ -1,45 +1,33 @@
 #include "big_number.hpp"
-#include <memory>
-
+#include <sstream>
 namespace big_number
 {
 
-	void BigNumber::NormalizeLength()
+	// Конструктор: если parameter не равен 0, записываем его в первый коэффициент
+	BigNumber::BigNumber(int max_length, int parameter)
+		: length_(1), maxLength_(max_length)
 	{
-		while (length_ > 1 && coefficients_[length_ - 1] == 0)
-		{
-			--length_;
-		}
-	}
-	// Конструктор
-	BigNumber::BigNumber(int maxLen, int parameter) : length_(1), maxLength_(maxLen)
-	{
-		coefficients_.resize(maxLen, 0);
-		// Если параметр не равен 0, инициализируем случайными значениями
+		coefficients_.resize(maxLength_, 0);
 		if (parameter != 0)
 		{
-			length_ = maxLength_;
-			for (int i = 0; i < maxLength_; i++)
-			{
-				coefficients_[i] = rand();
-			}
-			if (sizeof(BaseType) == sizeof(unsigned int))
-			{ // увеличинная генерация больших чтсел в основании с int
-				for (int i = 0; i < maxLength_; ++i)
-				{
-					coefficients_[i] <<= 16;
-					coefficients_[i] |= rand();
-				}
-			}
+			coefficients_[0] = static_cast<BaseType>(parameter);
 		}
 	}
 
 	// Конструктор копирования
-	BigNumber::BigNumber(const BigNumber &other) : length_(other.length_), maxLength_(other.maxLength_)
+	BigNumber::BigNumber(const BigNumber &other)
+		: coefficients_(other.coefficients_), length_(other.length_), maxLength_(other.maxLength_)
 	{
-		coefficients_ = other.coefficients_;
 	}
 
+	// Конструктор, принимающий строку (десятичное представление)
+	BigNumber::BigNumber(const std::string &s)
+		: BigNumber(s.size()) // используем конструктор с max_length = размер строки (это приблизительная оценка)
+	{
+		std::istringstream iss(s);
+		iss >> *this;
+	}
+	// Геттеры
 	int BigNumber::GetLength()
 	{
 		return length_;
@@ -55,661 +43,461 @@ namespace big_number
 		return coefficients_.data();
 	}
 
-	void BigNumber::SetLength(int olength)
+	// Сеттеры
+	void BigNumber::SetLength(int newLength)
 	{
-		if (olength > maxLength_)
+		if (newLength > maxLength_)
 		{
 			throw std::invalid_argument("New length exceeds maximum length.");
 		}
-		length_ = olength;
+		length_ = newLength;
 	}
 
-	void BigNumber::SetMaxLength(int omaxLength)
+	void BigNumber::SetMaxLength(int newMaxLength)
 	{
-		if (omaxLength < length_)
+		if (newMaxLength < length_)
 		{
 			throw std::invalid_argument("New maximum length is less than current length.");
 		}
-		maxLength_ = omaxLength;
+		maxLength_ = newMaxLength;
 		coefficients_.resize(maxLength_, 0);
 	}
 
-	void BigNumber::SetCoefficients(BaseType *ocoefficients)
+	void BigNumber::SetCoefficients(BaseType *newCoefficients)
 	{
-		std::copy(ocoefficients, ocoefficients + length_, coefficients_.begin());
+		std::copy(newCoefficients, newCoefficients + length_, coefficients_.begin());
 	}
+
+	// Удаляет незначащие нули (старшие коэффициенты, равные 0)
+	void BigNumber::NormalizeLength()
+	{
+		while (length_ > 1 && coefficients_[length_ - 1] == 0)
+			--length_;
+	}
+
+	// Операторы сравнения
+	bool BigNumber::operator==(const BigNumber &other) const
+	{
+		if (length_ != other.length_)
+			return false;
+		for (int i = 0; i < length_; ++i)
+			if (coefficients_[i] != other.coefficients_[i])
+				return false;
+		return true;
+	}
+
+	bool BigNumber::operator!=(const BigNumber &other) const
+	{
+		return !(*this == other);
+	}
+
+	bool BigNumber::operator<(const BigNumber &other) const
+	{
+		if (length_ != other.length_)
+			return length_ < other.length_;
+		for (int i = length_ - 1; i >= 0; --i)
+			if (coefficients_[i] != other.coefficients_[i])
+				return coefficients_[i] < other.coefficients_[i];
+		return false;
+	}
+
+	bool BigNumber::operator>(const BigNumber &other) const
+	{
+		return other < *this;
+	}
+
+	bool BigNumber::operator<=(const BigNumber &other) const
+	{
+		return !(*this > other);
+	}
+
+	bool BigNumber::operator>=(const BigNumber &other) const
+	{
+		return !(*this < other);
+	}
+
 	// Оператор присваивания
 	BigNumber &BigNumber::operator=(const BigNumber &other)
 	{
 		if (this != &other)
 		{
-			maxLength_ = other.maxLength_;
-			length_ = other.length_;
 			coefficients_ = other.coefficients_;
+			length_ = other.length_;
+			maxLength_ = other.maxLength_;
 		}
 		return *this;
 	}
 
-	// Печать числа в шестнадцатеричном формате
-	void BigNumber::PrintHex() const
-	{
-		int i = length_ - 1;
-		while (i >= 0)
-		{
-			std::cout.width(BASE_SIZE / 4);
-			std::cout.fill('0');
-			std::cout << std::hex << static_cast<int>(coefficients_[i]) << " ";
-			i--;
-		}
-	}
-
-	// Ввод числа в шестнадцатеричном формате
-	void BigNumber::ReadHex()
-	{
-		std::string inputString;
-		std::getline(std::cin, inputString);
-		int inputStringLength = inputString.length();
-		int k = 0, j = 0;
-		length_ = (inputStringLength - 1) / (BASE_SIZE / 4) + 1;
-		maxLength_ = length_;
-		coefficients_.resize(maxLength_);
-		int i = 0;
-		while (i < length_)
-		{
-			coefficients_[i] = 0;
-			i++;
-		}
-
-		// Преобразование строки в шестнадцатеричные коэффициенты
-		int idx = inputStringLength - 1;
-		while (idx >= 0)
-		{
-			unsigned int temp = 0;
-			if ('0' <= inputString[idx] && inputString[idx] <= '9')
-			{
-				temp = inputString[idx] - '0';
-			}
-			else if ('a' <= inputString[idx] && inputString[idx] <= 'f')
-			{
-				temp = inputString[idx] - 'a' + 10;
-			}
-			else if ('A' <= inputString[idx] && inputString[idx] <= 'F')
-			{
-				temp = inputString[idx] - 'A' + 10;
-			}
-			else
-			{
-				throw std::invalid_argument("Invalid arguments.");
-			}
-
-			coefficients_[j] |= temp << k;
-			k += 4;
-			if (k >= BASE_SIZE)
-			{
-				k = 0;
-				j++;
-			}
-			idx--;
-		}
-		NormalizeLength();
-	}
-
-	// Оператор сложения
+	// Операция сложения
 	BigNumber BigNumber::operator+(const BigNumber &other) const
 	{
-		int maxOfLengths = std::max(length_, other.length_);
-		int minOfLengths = std::min(length_, other.length_);
-		int sumLength = maxOfLengths + 1; // Инициализация с учетом возможного переноса
-		BigNumber sumNumber(sumLength);
+		int maxLen = std::max(length_, other.length_);
+		BigNumber result(maxLen + 1);
 		BaseType carry = 0;
 		int i = 0;
-		while (i < minOfLengths)
+		for (; i < std::min(length_, other.length_); ++i)
 		{
-			DoubleBaseType tempSum = (DoubleBaseType)coefficients_[i] + (DoubleBaseType)other.coefficients_[i] + carry;
-			sumNumber.coefficients_[i] = (BaseType)tempSum;
-			carry = tempSum >> BASE_SIZE;
-			i++;
+			DoubleBaseType sum = static_cast<DoubleBaseType>(coefficients_[i]) + other.coefficients_[i] + carry;
+			result.coefficients_[i] = static_cast<BaseType>(sum);
+			carry = static_cast<BaseType>(sum >> BASE_SIZE);
 		}
-
 		while (i < length_)
 		{
-			DoubleBaseType tempSum = (DoubleBaseType)coefficients_[i] + carry;
-			sumNumber.coefficients_[i] = (BaseType)tempSum;
-			carry = tempSum >> BASE_SIZE;
-			i++;
+			DoubleBaseType sum = static_cast<DoubleBaseType>(coefficients_[i]) + carry;
+			result.coefficients_[i] = static_cast<BaseType>(sum);
+			carry = static_cast<BaseType>(sum >> BASE_SIZE);
+			++i;
 		}
-
 		while (i < other.length_)
 		{
-			DoubleBaseType tempSum = (DoubleBaseType)other.coefficients_[i] + carry;
-			sumNumber.coefficients_[i] = (BaseType)tempSum;
-			carry = tempSum >> BASE_SIZE;
-			i++;
+			DoubleBaseType sum = static_cast<DoubleBaseType>(other.coefficients_[i]) + carry;
+			result.coefficients_[i] = static_cast<BaseType>(sum);
+			carry = static_cast<BaseType>(sum >> BASE_SIZE);
+			++i;
 		}
-
-		sumNumber.coefficients_[maxOfLengths] = carry; // Установка старшего разряда
-
-		// Корректировка длины результата
-		sumNumber.length_ = sumLength;
-		sumNumber.NormalizeLength();
-
-		return sumNumber;
+		result.coefficients_[maxLen] = carry;
+		result.length_ = maxLen + 1;
+		result.NormalizeLength();
+		return result;
 	}
 
-	// Оператор сложения с присваиванием
 	BigNumber &BigNumber::operator+=(const BigNumber &other)
 	{
 		*this = *this + other;
 		return *this;
 	}
 
-	// Оператор вычитания
+	// Операция вычитания (предполагается, что *this >= other)
 	BigNumber BigNumber::operator-(const BigNumber &other) const
 	{
 		if (*this < other)
+			throw std::invalid_argument("Subtraction result would be negative.");
+		BigNumber result(length_);
+		int borrow = 0;
+		int i = 0;
+		for (; i < other.length_; ++i)
 		{
-			throw std::invalid_argument("Invalid argument"); // Если текущее число меньше другого, выбрасываем исключение
+			DoubleBaseType temp = (static_cast<DoubleBaseType>(1) << BASE_SIZE) | coefficients_[i];
+			temp = temp - other.coefficients_[i] - borrow;
+			result.coefficients_[i] = static_cast<BaseType>(temp);
+			borrow = (temp >> BASE_SIZE) ? 0 : 1;
 		}
-
-		int j = 0;
-		int borrow = 0; // Коэффициент заема
-		DoubleBaseType temp;
-		BigNumber subtractionNum(length_);
-		while (j < other.length_)
+		while (i < length_)
 		{
-			// Вычисляем разность с учетом заема
-			temp = ((DoubleBaseType)1 << BASE_SIZE) | coefficients_[j];
-			temp = temp - (DoubleBaseType)other.coefficients_[j] - borrow;
-
-			// Записываем значение разности
-			subtractionNum.coefficients_[j] = (BaseType)temp;
-
-			// Определяем новый коэффициент заема
-			borrow = !(temp >> BASE_SIZE);
-
-			j++;
-		}
-
-		while (j < length_)
-		{
-			// Учитываем заем и вычитаем его
-			temp = ((DoubleBaseType)1 << BASE_SIZE) | coefficients_[j];
+			DoubleBaseType temp = (static_cast<DoubleBaseType>(1) << BASE_SIZE) | coefficients_[i];
 			temp -= borrow;
-
-			// Записываем значение
-			subtractionNum.coefficients_[j] = (BaseType)temp;
-
-			// Определяем новый коэффициент заема
-			borrow = !(temp >> BASE_SIZE);
-
-			j++;
+			result.coefficients_[i] = static_cast<BaseType>(temp);
+			borrow = (temp >> BASE_SIZE) ? 0 : 1;
+			++i;
 		}
-
-		// Корректируем фактическую длину результата
-		subtractionNum.length_ = length_;
-		subtractionNum.NormalizeLength();
-
-		return subtractionNum; // Возвращаем результат
+		result.length_ = length_;
+		result.NormalizeLength();
+		return result;
 	}
 
-	// Оператор вычитания с присваиванием
 	BigNumber &BigNumber::operator-=(const BigNumber &other)
 	{
 		*this = *this - other;
 		return *this;
 	}
 
-	// Умножение на отдельное значение типа BaseType
-	BigNumber BigNumber::operator*(const BaseType &multiplier) const
+	// Умножение на скаляр
+	BigNumber BigNumber::operator*(const BaseType &value) const
 	{
-		int j = 0;
+		BigNumber result(length_ + 1);
 		BaseType carry = 0;
-		BigNumber resNumber(length_ + 1); // Создаем объект для результата с максимально возможной длиной
-		DoubleBaseType tmp;
-
-		while (j < length_)
+		int i = 0;
+		for (; i < length_; ++i)
 		{
-			tmp = (DoubleBaseType)coefficients_[j] * (DoubleBaseType)multiplier + (DoubleBaseType)carry;
-			resNumber.coefficients_[j] = (BaseType)tmp;
-			carry = (BaseType)(tmp >> BASE_SIZE);
-			j++;
+			DoubleBaseType prod = static_cast<DoubleBaseType>(coefficients_[i]) * value + carry;
+			result.coefficients_[i] = static_cast<BaseType>(prod);
+			carry = static_cast<BaseType>(prod >> BASE_SIZE);
 		}
-		resNumber.coefficients_[j] = carry;
-		resNumber.length_ = length_ + 1;
-		resNumber.NormalizeLength();
-		return resNumber;
+		result.coefficients_[i] = carry;
+		result.length_ = length_ + 1;
+		result.NormalizeLength();
+		return result;
 	}
 
-	// Оператор умножения с присваиванием для другого объекта BigNumber
-	BigNumber &BigNumber::operator*=(const BaseType &multiplier)
+	BigNumber &BigNumber::operator*=(const BaseType &value)
 	{
-		*this = *this * multiplier; // Используем операцию умножения для текущего объекта и другого BigNumber
+		*this = *this * value;
 		return *this;
 	}
 
-	// Умножение на другой объект BigNumber
+	// Умножение на большое число (школьный алгоритм)
 	BigNumber BigNumber::operator*(const BigNumber &other) const
 	{
-		if (other.length_ == 1 && other.coefficients_[0] == 0)
-		{
+		if ((other.length_ == 1) && (other.coefficients_[0] == 0))
 			return BigNumber();
-		}
-		BigNumber resNumber(length_ + other.length_);
-		DoubleBaseType tmp;
-		int j = 0;
-		while (j < other.length_)
+		BigNumber result(length_ + other.length_);
+		for (int j = 0; j < other.length_; ++j)
 		{
 			if (other.coefficients_[j] != 0)
 			{
 				BaseType carry = 0;
-				int i = 0;
-				while (i < length_)
+				for (int i = 0; i < length_; ++i)
 				{
-					tmp = (DoubleBaseType)coefficients_[i] * (DoubleBaseType)other.coefficients_[j] + (DoubleBaseType)resNumber.coefficients_[i + j] + (DoubleBaseType)carry;
-					resNumber.coefficients_[i + j] = (BaseType)tmp;
-					carry = (BaseType)(tmp >> BASE_SIZE);
-					i++;
+					DoubleBaseType prod = static_cast<DoubleBaseType>(coefficients_[i]) * other.coefficients_[j] +
+										  result.coefficients_[i + j] + carry;
+					result.coefficients_[i + j] = static_cast<BaseType>(prod);
+					carry = static_cast<BaseType>(prod >> BASE_SIZE);
 				}
-				resNumber.coefficients_[length_ + j] = carry;
+				result.coefficients_[length_ + j] = carry;
 			}
-			j++;
 		}
-		resNumber.length_ = length_ + other.length_;
-		resNumber.NormalizeLength();
-		return resNumber;
+		result.length_ = length_ + other.length_;
+		result.NormalizeLength();
+		return result;
 	}
 
-	// Оператор умножения с присваиванием для отдельного значения BaseType
 	BigNumber &BigNumber::operator*=(const BigNumber &other)
 	{
 		*this = *this * other;
 		return *this;
 	}
 
-	// Оператор деления на BaseType
-	BigNumber BigNumber::operator/(const BaseType &number) const
+	// Деление на скаляр
+	BigNumber BigNumber::operator/(const BaseType &value) const
 	{
-		if (number == 0)
-		{
+		if (value == 0)
 			throw std::invalid_argument("Division by zero.");
-		}
-		int j = 0;
-		DoubleBaseType tmp = 0;
-		BaseType left = 0;
-		BigNumber resNumber(length_);
-		while (j < length_)
+		BigNumber result(length_);
+		BaseType rem = 0;
+		for (int i = length_ - 1; i >= 0; --i)
 		{
-			tmp = ((DoubleBaseType)left << BASE_SIZE) + (DoubleBaseType)coefficients_[length_ - 1 - j];
-			resNumber.coefficients_[length_ - 1 - j] = (BaseType)(tmp / (DoubleBaseType)number);
-			left = (BaseType)(tmp % (DoubleBaseType)number);
-			j++;
+			DoubleBaseType cur = (static_cast<DoubleBaseType>(rem) << BASE_SIZE) + coefficients_[i];
+			result.coefficients_[i] = static_cast<BaseType>(cur / value);
+			rem = static_cast<BaseType>(cur % value);
 		}
-
-		resNumber.length_ = length_;
-		resNumber.NormalizeLength();
-		return resNumber;
-	}
-
-	// Оператор взятия остатка от деления на BaseType
-	BigNumber BigNumber::operator%(const BaseType &number) const
-	{
-		int j = 0;
-		DoubleBaseType tmp = 0;
-		BaseType left = 0;
-		BigNumber resNumber(1);
-
-		while (j < length_)
-		{
-			tmp = ((DoubleBaseType)left << BASE_SIZE) + (DoubleBaseType)coefficients_[length_ - 1 - j];
-			left = (BaseType)(tmp % (DoubleBaseType)number);
-			j++;
-		}
-
-		resNumber.coefficients_[0] = left;
-		// resNumber.NormalizeLength();
-
-		return resNumber;
-	}
-	BigNumber BigNumber::operator/(const BigNumber &divisor) const
-	{
-		if (divisor.length_ == 0 || (divisor.length_ == 1 && divisor.coefficients_[0] == 0))
-		{
-			throw std::invalid_argument("Division by zero.");
-		}
-
-		if (*this < divisor)
-		{
-			BigNumber result(1);
-			return result;
-		}
-
-		if (divisor.length_ == 1)
-		{
-			return *this / divisor.coefficients_[0];
-		}
-
-		DoubleBaseType base = ((DoubleBaseType)1 << BASE_SIZE);
-		DoubleBaseType d = base / (DoubleBaseType)(divisor.coefficients_[divisor.length_ - 1] + (BaseType)1);
-		int j = length_ - divisor.length_;
-
-		BigNumber dividend(*this);
-		dividend *= d;
-		BigNumber divisor_copy(divisor);
-		divisor_copy *= d;
-
-		BigNumber result(j + 1);
-		result.length_ = j + 1;
-
-		while (j >= 0)
-		{
-			DoubleBaseType q = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) / (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1])); // можно ускорить сдвигом
-			DoubleBaseType r = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) % (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]));
-
-			if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
-			{
-				q--;
-				r = (DoubleBaseType)(r) + (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]);
-				if ((DoubleBaseType)(r) < base)
-				{
-					if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
-					{
-						q--;
-					}
-				}
-			}
-
-			BigNumber u(divisor_copy.length_ + 1);
-			u.length_ = divisor_copy.length_ + 1;
-			for (int i = 0; i < divisor_copy.length_ + 1; i++)
-			{
-				u.coefficients_[i] = dividend.coefficients_[j + i];
-			}
-
-			if (u < divisor_copy * (BaseType)(q))
-			{ // оптимизировать умножение
-				q--;
-			}
-
-			u = u - divisor_copy * (BaseType)(q);
-			result.coefficients_[j] = (BaseType)(q);
-
-			for (int i = 0; i < divisor_copy.length_ + 1; i++)
-			{
-				dividend.coefficients_[j + i] = u.coefficients_[i];
-			}
-
-			j--;
-		}
-
+		result.length_ = length_;
 		result.NormalizeLength();
-
 		return result;
 	}
 
-	BigNumber BigNumber::operator%(const BigNumber &divisor) const
+	// Остаток от деления на скаляр
+	BigNumber BigNumber::operator%(const BaseType &value) const
 	{
-		if (divisor.length_ == 0 || (divisor.length_ == 1 && divisor.coefficients_[0] == 0))
-		{
+		if (value == 0)
 			throw std::invalid_argument("Division by zero.");
+		BaseType rem = 0;
+		for (int i = length_ - 1; i >= 0; --i)
+		{
+			DoubleBaseType cur = (static_cast<DoubleBaseType>(rem) << BASE_SIZE) + coefficients_[i];
+			rem = static_cast<BaseType>(cur % value);
+		}
+		BigNumber result(1);
+		result.coefficients_[0] = rem;
+		result.length_ = 1;
+		return result;
+	}
+
+	// -------------------------
+	// Реализация алгоритма Кнута для деления (DivideKnuth)
+	// Реализована как статический метод, поэтому имеет доступ к защищённым членам
+	// -------------------------
+	std::pair<BigNumber, BigNumber> BigNumber::DivideKnuth(const BigNumber &u_orig, const BigNumber &v_orig)
+	{
+		// Проверка деления на ноль
+		if ((v_orig.length_ == 1) && (v_orig.coefficients_[0] == 0))
+			throw std::invalid_argument("Division by zero.");
+
+		// Если делимое меньше делителя, частное = 0, остаток = делимое
+		if (u_orig < v_orig)
+			return {BigNumber(u_orig.maxLength_), u_orig};
+
+		// Если делитель состоит из одного коэффициента, используем упрощённое деление
+		if (v_orig.length_ == 1)
+			return {u_orig / v_orig.coefficients_[0], u_orig % v_orig.coefficients_[0]};
+
+		int n = v_orig.length_;		// число коэффициентов в делителе
+		int m = u_orig.length_ - n; // разница длин делимого и делителя
+		DoubleBaseType base = (static_cast<DoubleBaseType>(1) << BASE_SIZE);
+
+		// Шаг D1: Нормализация.
+		BaseType d = static_cast<BaseType>(base / (v_orig.coefficients_[n - 1] + 1));
+		BigNumber u = u_orig * d;
+		BigNumber v = v_orig * d;
+
+		// Гарантируем, что u имеет дополнительный коэффициент
+		if (u.length_ == u_orig.length_)
+		{
+			u.coefficients_.push_back(0);
+			u.length_++;
+			u.maxLength_++;
 		}
 
-		if (*this < divisor)
+		BigNumber Q(m + 1);
+		Q.length_ = m + 1;
+
+		// Шаг D3: Основной цикл
+		for (int j = m; j >= 0; --j)
 		{
-			return *this;
-		}
+			DoubleBaseType numerator = (static_cast<DoubleBaseType>(u.coefficients_[j + n]) << BASE_SIZE) +
+									   u.coefficients_[j + n - 1];
+			BaseType qhat = static_cast<BaseType>(numerator / v.coefficients_[n - 1]);
+			BaseType rhat = static_cast<BaseType>(numerator % v.coefficients_[n - 1]);
 
-		if (divisor.length_ == 1)
-		{
-			return *this % divisor.coefficients_[0];
-		}
-
-		int result_len = length_ - divisor.length_;
-		int base_size = BASE_SIZE;
-		DoubleBaseType base = ((DoubleBaseType)1 << base_size);
-		BaseType d = (BaseType)((DoubleBaseType)base / (DoubleBaseType)(divisor.coefficients_[divisor.length_ - 1] + 1));
-		int j = result_len;
-		int k = 0;
-
-		BigNumber dividend(*this);
-		dividend *= d;
-		BigNumber divisor_copy(divisor);
-		divisor_copy *= d;
-
-		if (dividend.length_ == length_)
-		{
-			dividend.maxLength_++;
-			dividend.length_ = maxLength_;
-			dividend.coefficients_.resize(maxLength_);
-			for (int i = 0; i < length_; i++)
+			// Корректировка предполагаемого частного
+			while ((qhat == static_cast<BaseType>(base)) ||
+				   (static_cast<DoubleBaseType>(qhat) * v.coefficients_[n - 2] >
+					((static_cast<DoubleBaseType>(rhat) << BASE_SIZE) + u.coefficients_[j + n - 2])))
 			{
-				dividend.coefficients_[i] = coefficients_[i];
+				--qhat;
+				rhat += v.coefficients_[n - 1];
+				if (rhat >= base)
+					break;
 			}
-			dividend *= d;
-			dividend.length_++;
-			dividend.coefficients_[dividend.length_ - 1] = 0;
-		}
 
-		while (j >= 0)
-		{
-			DoubleBaseType q = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) / (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]));
-			DoubleBaseType r = (DoubleBaseType)(((DoubleBaseType)((DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_]) * (DoubleBaseType)(base)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 1])) % (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]));
-
-			if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
+			int borrow = 0;
+			for (int i = 0; i < n; ++i)
 			{
-				q--;
-				r = (DoubleBaseType)(r) + (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 1]);
-				if ((DoubleBaseType)(r) < base)
+				DoubleBaseType p = static_cast<DoubleBaseType>(qhat) * v.coefficients_[i];
+				int sub = static_cast<int>(u.coefficients_[j + i]) - static_cast<int>(p & (base - 1)) - borrow;
+				borrow = (sub < 0) ? 1 : 0;
+				u.coefficients_[j + i] = static_cast<BaseType>((sub + (borrow ? base : 0)) & (base - 1));
+				borrow += static_cast<int>(p >> BASE_SIZE);
+			}
+			int sub = static_cast<int>(u.coefficients_[j + n]) - borrow;
+			if (sub < 0)
+			{
+				--qhat;
+				int carry = 0;
+				for (int i = 0; i < n; ++i)
 				{
-					if (q == base || (DoubleBaseType)((DoubleBaseType)(q) * (DoubleBaseType)(divisor_copy.coefficients_[divisor_copy.length_ - 2])) > (DoubleBaseType)(((DoubleBaseType)(base) * (DoubleBaseType)(r)) + (DoubleBaseType)(dividend.coefficients_[j + divisor_copy.length_ - 2])))
+					int sum = static_cast<int>(u.coefficients_[j + i]) + static_cast<int>(v.coefficients_[i]) + carry;
+					if (sum >= static_cast<int>(base))
 					{
-						q--;
+						sum -= static_cast<int>(base);
+						carry = 1;
 					}
+					else
+					{
+						carry = 0;
+					}
+					u.coefficients_[j + i] = static_cast<BaseType>(sum);
 				}
+				u.coefficients_[j + n] = static_cast<BaseType>(static_cast<int>(u.coefficients_[j + n]) + carry);
 			}
-
-			BigNumber u(divisor_copy.length_ + 1);
-			u.length_ = divisor_copy.length_ + 1;
-			for (int i = 0; i < divisor_copy.length_ + 1; i++)
+			else
 			{
-				u.coefficients_[i] = dividend.coefficients_[j + i];
+				u.coefficients_[j + n] = static_cast<BaseType>(sub);
 			}
-
-			if (u < divisor_copy * (BaseType)(q))
-			{
-				q--;
-			}
-
-			u = u - (divisor_copy * (BaseType)(q));
-
-			for (int i = 0; i < divisor_copy.length_ + 1; i++)
-			{
-				dividend.coefficients_[j + i] = u.coefficients_[i];
-			}
-
-			j--;
+			Q.coefficients_[j] = qhat;
 		}
+		Q.NormalizeLength();
 
-		dividend.NormalizeLength();
+		// Шаг D4: Денормализация остатка
+		BigNumber R(n);
+		R.length_ = n;
+		for (int i = 0; i < n; ++i)
+			R.coefficients_[i] = u.coefficients_[i];
+		R = R / d;
+		R.NormalizeLength();
 
-		return dividend / d;
+		return {Q, R};
 	}
 
-	bool BigNumber::operator==(const BigNumber &other) const
+	// Деление на большое число с использованием алгоритма Кнута
+	BigNumber BigNumber::operator/(const BigNumber &other) const
 	{
-		if (length_ != other.length_)
-		{
-			return false;
-		}
-		for (int i = 0; i < length_; ++i)
-		{
-			if (coefficients_[i] != other.coefficients_[i])
-			{
-				return false;
-			}
-		}
-		return true;
+		auto divRes = BigNumber::DivideKnuth(*this, other);
+		return divRes.first;
 	}
 
-	bool BigNumber::operator!=(const BigNumber &other) const
+	BigNumber BigNumber::operator%(const BigNumber &other) const
 	{
-		if (length_ != other.length_)
-		{
-			return true;
-		}
-		for (int i = 0; i < length_; ++i)
-		{
-			if (coefficients_[i] != other.coefficients_[i])
-			{
-				return true;
-			}
-		}
-		return false;
+		auto divRes = BigNumber::DivideKnuth(*this, other);
+		return divRes.second;
 	}
 
-	bool BigNumber::operator<(const BigNumber &other) const
+	// Оператор вывода в поток (вывод в десятичном виде)
+	std::ostream &operator<<(std::ostream &out, const BigNumber number)
 	{
-		if (length_ < other.length_)
+		BigNumber zero(1, 0);
+		if (number == zero)
 		{
-			return true;
+			out << "0";
+			return out;
 		}
-		if (length_ > other.length_)
+		BigNumber temp = number;
+		std::string str;
+		while (!(temp == zero))
 		{
-			return false;
+			BigNumber rem = temp % 10;
+			char digit = static_cast<char>(rem.coefficients_[0] + '0');
+			str.push_back(digit);
+			temp = temp / 10;
 		}
-		for (int i = length_ - 1; i >= 0; --i)
-		{
-			if (coefficients_[i] < other.coefficients_[i])
-			{
-				return true;
-			}
-			if (coefficients_[i] > other.coefficients_[i])
-			{
-				return false;
-			}
-		}
-		return false;
+		std::reverse(str.begin(), str.end());
+		out << str;
+		return out;
 	}
 
-	bool BigNumber::operator>(const BigNumber &other) const
+	// Оператор ввода из потока (ожидается десятичное представление)
+	std::istream &operator>>(std::istream &in, BigNumber &number)
 	{
-		if (length_ > other.length_)
+		std::string s;
+		in >> s;
+		BigNumber result(s.size());
+		result = BigNumber(1, 0);
+		BigNumber ten(1, 10);
+		for (char ch : s)
 		{
-			return true;
+			if (ch < '0' || ch > '9')
+				throw std::invalid_argument("Invalid digit in input.");
+			result = result * 10;
+			BigNumber digit(1, ch - '0');
+			result = result + digit;
 		}
-
-		if (length_ < other.length_)
-		{
-			return false;
-		}
-		for (int i = length_ - 1; i >= 0; --i)
-		{
-			if (coefficients_[i] > other.coefficients_[i])
-			{
-				return true;
-			}
-			if (coefficients_[i] < other.coefficients_[i])
-			{
-				return false;
-			}
-		}
-		return false;
-	}
-
-	bool BigNumber::operator<=(const BigNumber &other) const
-	{
-		if (length_ > other.length_)
-		{
-			return false;
-		}
-		if (length_ < other.length_)
-		{
-			return true;
-		}
-		for (int i = length_ - 1; i >= 0; --i)
-		{
-			if (coefficients_[i] < other.coefficients_[i])
-			{
-				return true;
-			}
-			if (coefficients_[i] > other.coefficients_[i])
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
-	bool BigNumber::operator>=(const BigNumber &other) const
-	{
-		if (length_ < other.length_)
-		{
-			return false;
-		}
-		if (length_ > other.length_)
-		{
-			return true;
-		}
-		for (int i = length_ - 1; i >= 0; --i)
-		{
-			if (coefficients_[i] > other.coefficients_[i])
-			{
-				return true;
-			}
-			if (coefficients_[i] < other.coefficients_[i])
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
-	std::istream &operator>>(std::istream &in, BigNumber &bNum)
-	{
-		int j = 0;
-		std::string inputString;
-		std::getline(in, inputString);
-		int inputStringLength = inputString.length();
-		BaseType t = 0;
-
-		BigNumber temp((inputStringLength - 1) / (BASE_SIZE / 4) + 1);
-
-		while (j < inputStringLength)
-		{
-			if ('0' > inputString[j] || inputString[j] > '9')
-			{
-				throw std::invalid_argument("Invalid arguments");
-			}
-			t = inputString[j] - '0';
-			temp = temp * ((BaseType)10);
-
-			BigNumber newNum;
-			auto newNumCoefficients = newNum.GetCoefficients();
-			newNumCoefficients[0] = (BaseType)t;
-			temp += newNum;
-			j++;
-		}
-
-		temp.SetLength(temp.GetMaxLength());
-		temp.NormalizeLength();
-
-		bNum = temp;
-
+		number = result;
 		return in;
 	}
 
-	std::ostream &operator<<(std::ostream &out, BigNumber bN)
+	// Вывод числа в 16-ричной форме
+	void BigNumber::PrintHex() const
 	{
-		BigNumber newNum = bN; // Используем переданный объект bN
-		BigNumber zero(newNum.GetLength());
-		std::string s;
-		while (newNum != zero)
+		for (int i = length_ - 1; i >= 0; --i)
 		{
-			BigNumber t = newNum % 10;
-			s.push_back(t.GetCoefficients()[0] + '0');
-			newNum = newNum / 10;
+			std::cout.width(BASE_SIZE / 4);
+			std::cout.fill('0');
+			std::cout << std::hex << coefficients_[i] << " ";
 		}
-		reverse(s.begin(), s.end());
-		out << s; // Выводим строку s в поток out
-		return out;
+		std::cout << std::dec;
 	}
-}
+
+	// Чтение числа в 16-ричной форме
+	void BigNumber::ReadHex()
+	{
+		std::string input;
+		std::getline(std::cin, input);
+		int inputLength = input.size();
+		length_ = (inputLength - 1) / (BASE_SIZE / 4) + 1;
+		maxLength_ = length_;
+		coefficients_.assign(maxLength_, 0);
+
+		int k = 0, j = 0;
+		for (int idx = inputLength - 1; idx >= 0; --idx)
+		{
+			unsigned int temp = 0;
+			char ch = input[idx];
+			if (ch >= '0' && ch <= '9')
+				temp = ch - '0';
+			else if (ch >= 'a' && ch <= 'f')
+				temp = ch - 'a' + 10;
+			else if (ch >= 'A' && ch <= 'F')
+				temp = ch - 'A' + 10;
+			else
+				throw std::invalid_argument("Invalid hexadecimal digit.");
+			coefficients_[j] |= temp << k;
+			k += 4;
+			if (k >= BASE_SIZE)
+			{
+				k = 0;
+				++j;
+			}
+		}
+		NormalizeLength();
+	}
+
+} // namespace big_number

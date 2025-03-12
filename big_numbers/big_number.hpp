@@ -6,138 +6,146 @@
 #include <ctime>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include <memory>
 #include <vector>
-
-using BaseType = unsigned int;				   ///< Основной тип для хранения коэффициентов
-using DoubleBaseType = unsigned long long int; ///< Тип для хранения удвоенных значений
-
-constexpr int BASE_SIZE = sizeof(BaseType) * 8;		   ///< Размер BaseType в битах
-constexpr int DBASE_SIZE = sizeof(DoubleBaseType) * 8; ///< Размер DoubleBaseType в битах
 
 namespace big_number
 {
-	/// @brief Класс для работы с большими числами на основе массива коэффициентов
-	class BigNumber
-	{
-	protected:
-		std::vector<BaseType> coefficients_; ///< Коэффициенты числа (младший разряд имеет индекс 0)
-		int length_;						 ///< Фактическая длина числа (количество значащих коэффициентов)
-		int maxLength_;						 ///< Максимально возможная длина массива коэффициентов
+using BaseType = unsigned char;               ///< Основной тип для хранения коэффициентов
+using DoubleBaseType = unsigned int;          ///< Тип для хранения удвоенных значений
+using FoursBaseType = unsigned long long int; ///< Тип для хранения учетверенных значений
 
-	public:
-		/// @brief Конструктор, создающий число с заданной максимальной длиной и начальным значением
-		/// @param max_length Максимальная длина числа
-		/// @param parameter Начальное значение (записывается в первый коэффициент, остальные – 0)
-		explicit BigNumber(int max_length = 1, int parameter = 0);
+constexpr int BASE_SIZE = sizeof(BaseType) * 8;        ///< Размер BaseType в битах
+constexpr int DBASE_SIZE = sizeof(DoubleBaseType) * 8; ///< Размер DoubleBaseType в битах
+constexpr int QBASE_SIZE = sizeof(FoursBaseType) * 8;  ///< Размер FoursBaseType в битах
 
-		/// @brief Конструктор копирования
-		/// @param other Объект для копирования
-		BigNumber(const BigNumber &other);
+/// @brief Класс для работы с большими числами на основе массива коэффициентов
+class BigNumber
+{
+  protected:
+    std::vector<BaseType> coefficients_; ///< Коэффициенты числа (младший разряд имеет индекс 0)
+    int length_;                         ///< Фактическая длина числа (количество значащих коэффициентов)
+    int maxLength_;                      ///< Максимально возможная длина массива коэффициентов
 
-		/// @brief Конструктор из строки (десятичное представление числа)
-		/// @param s Строка с десятичным представлением числа
-		explicit BigNumber(const std::string &s);
+  public:
+    /// @brief Конструктор, создающий число с заданной максимальной длиной и
+    /// начальным значением
+    /// @param max_length Максимальная длина числа
+    /// @param parameter Начальное значение (записывается в первый коэффициент,
+    /// остальные – 0)
+    explicit BigNumber(int max_length = 1, int parameter = 0);
 
-		/// @brief Конструктор из числа (unsigned long long)
-		/// @param value Число, которое необходимо представить в виде BigNumber
-		explicit BigNumber(unsigned long long value);
+    /// @brief Конструктор копирования
+    /// @param other Объект для копирования
+    BigNumber(const BigNumber &other);
 
-		/// @brief Деструктор
-		~BigNumber() = default;
+    /// @brief Конструктор из строки (десятичное представление числа)
+    /// @param s Строка с десятичным представлением числа
+    explicit BigNumber(const std::string &s);
 
-		/// @brief Получает фактическую длину числа
-		/// @return Количество значащих коэффициентов
-		int GetLength();
+    /// @brief Конструктор из числа (unsigned long long)
+    /// @param value Число, которое необходимо представить в виде BigNumber
+    explicit BigNumber(unsigned long long value);
 
-		/// @brief Получает максимальную длину числа
-		/// @return Максимально возможное количество коэффициентов
-		int GetMaxLength();
+    /// @brief Деструктор
+    ~BigNumber() = default;
 
-		/// @brief Получает указатель на массив коэффициентов
-		/// @return Указатель на массив коэффициентов
-		BaseType *GetCoefficients();
+    /// @brief Получает фактическую длину числа
+    /// @return Количество значащих коэффициентов
+    int GetLength();
 
-		/// @brief Устанавливает текущую длину числа
-		/// @param newLength Новое значение длины
-		/// @throw std::invalid_argument если newLength больше maxLength
-		void SetLength(int newLength);
+    /// @brief Получает максимальную длину числа
+    /// @return Максимально возможное количество коэффициентов
+    int GetMaxLength();
 
-		/// @brief Устанавливает максимальную длину числа
-		/// @param newMaxLength Новая максимальная длина
-		/// @throw std::invalid_argument если newMaxLength меньше текущей длины
-		void SetMaxLength(int newMaxLength);
+    /// @brief Получает указатель на массив коэффициентов
+    /// @return Указатель на массив коэффициентов
+    BaseType *GetCoefficients();
 
-		/// @brief Устанавливает новые коэффициенты
-		/// @param newCoefficients Указатель на новый массив коэффициентов
-		void SetCoefficients(BaseType *newCoefficients);
+    /// @brief Устанавливает текущую длину числа
+    /// @param newLength Новое значение длины
+    /// @throw std::invalid_argument если newLength больше maxLength
+    void SetLength(int newLength);
 
-		/// @brief Нормализует длину числа, удаляя незначащие нули
-		void NormalizeLength();
+    /// @brief Устанавливает максимальную длину числа
+    /// @param newMaxLength Новая максимальная длина
+    /// @throw std::invalid_argument если newMaxLength меньше текущей длины
+    void SetMaxLength(int newMaxLength);
 
-		/// @brief Оператор сравнения на равенство
-		bool operator==(const BigNumber &other) const;
-		/// @brief Оператор сравнения на неравенство
-		bool operator!=(const BigNumber &other) const;
-		/// @brief Оператор сравнения "меньше"
-		bool operator<(const BigNumber &other) const;
-		/// @brief Оператор сравнения "больше"
-		bool operator>(const BigNumber &other) const;
-		/// @brief Оператор сравнения "меньше или равно"
-		bool operator<=(const BigNumber &other) const;
-		/// @brief Оператор сравнения "больше или равно"
-		bool operator>=(const BigNumber &other) const;
+    /// @brief Устанавливает новые коэффициенты
+    /// @param index Индекс вставки
+    /// @param value Значение вставки
+    void SetCoefficient(int index, BaseType value);
 
-		/// @brief Оператор присваивания
-		BigNumber &operator=(const BigNumber &other);
+    /// @brief Нормализует длину числа, удаляя незначащие нули
+    void NormalizeLength();
 
-		/// @brief Оператор сложения
-		BigNumber operator+(const BigNumber &other) const;
-		/// @brief Оператор сложения с присваиванием
-		BigNumber &operator+=(const BigNumber &other);
+    /// @brief Оператор сравнения на равенство
+    bool operator==(const BigNumber &other) const;
+    /// @brief Оператор сравнения на неравенство
+    bool operator!=(const BigNumber &other) const;
+    /// @brief Оператор сравнения "меньше"
+    bool operator<(const BigNumber &other) const;
+    /// @brief Оператор сравнения "больше"
+    bool operator>(const BigNumber &other) const;
+    /// @brief Оператор сравнения "меньше или равно"
+    bool operator<=(const BigNumber &other) const;
+    /// @brief Оператор сравнения "больше или равно"
+    bool operator>=(const BigNumber &other) const;
 
-		/// @brief Оператор вычитания
-		BigNumber operator-(const BigNumber &other) const;
-		/// @brief Оператор вычитания с присваиванием
-		BigNumber &operator-=(const BigNumber &other);
+    /// @brief Оператор присваивания
+    BigNumber &operator=(const BigNumber &other);
 
-		/// @brief Оператор умножения на скаляр
-		BigNumber operator*(const BaseType &value) const;
-		/// @brief Оператор умножения на скаляр с присваиванием
-		BigNumber &operator*=(const BaseType &value);
+    /// @brief Оператор сложения
+    BigNumber operator+(const BigNumber &other) const;
+    /// @brief Оператор сложения с присваиванием
+    BigNumber &operator+=(const BigNumber &other);
 
-		/// @brief Оператор умножения на большое число
-		BigNumber operator*(const BigNumber &other) const;
-		/// @brief Оператор умножения на большое число с присваиванием
-		BigNumber &operator*=(const BigNumber &other);
+    /// @brief Оператор вычитания
+    BigNumber operator-(const BigNumber &other) const;
+    /// @brief Оператор вычитания с присваиванием
+    BigNumber &operator-=(const BigNumber &other);
 
-		/// @brief Оператор деления на скаляр
-		BigNumber operator/(const BaseType &value) const;
-		/// @brief Оператор остатка от деления на скаляр
-		BigNumber operator%(const BaseType &value) const;
+    /// @brief Оператор умножения на скаляр
+    BigNumber operator*(const BaseType &value) const;
+    /// @brief Оператор умножения на скаляр с присваиванием
+    BigNumber &operator*=(const BaseType &value);
 
-		/// @brief Оператор деления на большое число
-		BigNumber operator/(const BigNumber &other) const;
-		/// @brief Оператор остатка от деления на большое число
-		BigNumber operator%(const BigNumber &other) const;
+    /// @brief Оператор умножения на большое число
+    BigNumber operator*(const BigNumber &other) const;
+    /// @brief Оператор умножения на большое число с присваиванием
+    BigNumber &operator*=(const BigNumber &other);
 
-		/// @brief Вывод числа в 16-ричной системе
-		void PrintHex() const;
-		/// @brief Чтение числа в 16-ричной системе
-		void ReadHex();
+    /// @brief Оператор деления на скаляр
+    BigNumber operator/(const BaseType &value) const;
+    /// @brief Оператор остатка от деления на скаляр
+    BigNumber operator%(const BaseType &value) const;
 
-		/// @brief Оператор ввода из потока
-		friend std::istream &operator>>(std::istream &in, BigNumber &number);
-		/// @brief Оператор вывода в поток (вывод в десятичном виде)
-		friend std::ostream &operator<<(std::ostream &out, const BigNumber number);
+    /// @brief Оператор деления на большое число
+    BigNumber operator/(const BigNumber &other) const;
+    /// @brief Оператор остатка от деления на большое число
+    BigNumber operator%(const BigNumber &other) const;
 
-	private:
-		// Статическая вспомогательная функция деления по алгоритму Кнута,
-		// которая имеет доступ к защищённым членам класса.
-		static std::pair<BigNumber, BigNumber> DivideKnuth(const BigNumber &u_orig, const BigNumber &v_orig);
-	};
+    /// @brief Вывод числа в 16-ричной системе
+    void PrintHex() const;
+    /// @brief Чтение числа в 16-ричной системе
+    void ReadHex();
+
+    /// @brief Оператор ввода из потока
+    friend std::istream &operator>>(std::istream &in, BigNumber &number);
+    /// @brief Оператор вывода в поток (вывод в десятичном виде)
+    friend std::ostream &operator<<(std::ostream &out, const BigNumber number);
+
+    /// @brief Быстрое возведение в квадрат на основе алгоритма с оптимизацией
+    BigNumber FastSquare();
+
+  private:
+    // Статическая вспомогательная функция деления по алгоритму Кнута,
+    // которая имеет доступ к защищённым членам класса.
+    static std::pair<BigNumber, BigNumber> DivideKnuth(const BigNumber &u_orig, const BigNumber &v_orig);
+};
 
 } // namespace big_number
 

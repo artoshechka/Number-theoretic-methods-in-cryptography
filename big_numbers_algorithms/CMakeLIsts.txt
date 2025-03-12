@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.10)
+project(BigNumbersAlgo)
+
+set(CMAKE_CXX_STANDARD 17)
+
+file(GLOB SOURCES *.cpp)
+add_library(BigNumbersAlgoLib ${SOURCES})
+
+target_link_libraries(BigNumbersAlgoLib BigNumbersLib )
+
+target_include_directories(BigNumbersAlgoLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

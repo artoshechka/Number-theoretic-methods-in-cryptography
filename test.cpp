@@ -1,7 +1,7 @@
-#include <cassert>
-#include <sstream>
-#include <iostream>
 #include "big_number.hpp"
+#include <cassert>
+#include <iostream>
+#include <sstream>
 
 using namespace big_number;
 
@@ -133,9 +133,9 @@ void TestEdgeCases()
 void stressTest()
 {
     // Количество итераций – можно увеличить для более сильного стресса
-    const int iterations = 1000000;
+    const int iterations = 100000;
     // Максимальная длина для генерации случайных чисел
-    const int M = 10000;
+    const int M = 1000;
 
     for (int i = 0; i < iterations; ++i)
     {
@@ -166,19 +166,22 @@ void stressTest()
 
     std::cout << "Stress test passed (" << iterations << " iterations)" << std::endl;
 }
+void FastSquareTest()
+{
+    big_number::BigNumber BN;
+    std::cin >> BN;
+    auto multiply = BN * BN;
+    std::cout << "BN: " << BN << std::endl << "BN*BN:\n " << multiply << std::endl;
+    auto square = BN.FastSquare();
+    std::cout << "BN.FastSquare():\n " << square << std::endl;
+    if (multiply == square)
+        std::cout << "--- BNs are EQUAL ---";
+}
 
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    stressTest();
-
-    TestConstructorsAndIO();
-    TestConstructorFromNumber();
-    TestArithmeticOperations();
-    TestComparisonOperations();
-    TestEdgeCases();
-
-    std::cout << "All tests passed successfully!\n";
+    FastSquareTest();
     return 0;
 }

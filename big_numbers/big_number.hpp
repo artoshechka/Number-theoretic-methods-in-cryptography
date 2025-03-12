@@ -141,6 +141,8 @@ class BigNumber
     /// @brief Быстрое возведение в квадрат на основе алгоритма с оптимизацией
     BigNumber FastSquare();
 
+    BigNumber DichatomicExponentiation(BigNumber &number);
+
   private:
     // Статическая вспомогательная функция деления по алгоритму Кнута,
     // которая имеет доступ к защищённым членам класса.

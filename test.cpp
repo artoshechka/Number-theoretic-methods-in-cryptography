@@ -178,10 +178,21 @@ void FastSquareTest()
         std::cout << "--- BNs are EQUAL ---";
 }
 
+void DichatomicExponentiationTest()
+{
+    big_number::BigNumber BNp;
+    big_number::BigNumber BNe;
+    std::cout << "BN to pow: ";
+    std::cin >> BNp;
+    std::cout << "BN as exp: ";
+    std::cin >> BNe;
+    std::cout << "BN result: " << BNp.DichatomicExponentiation(BNe);
+}
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    FastSquareTest();
+    // FastSquareTest();
+    DichatomicExponentiationTest();
     return 0;
 }

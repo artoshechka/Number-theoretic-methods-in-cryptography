@@ -41,3 +41,30 @@ BigNumber BigNumber::FastSquare()
     result.NormalizeLength();
     return result;
 }
+
+BigNumber BigNumber::DichatomicExponentiation(BigNumber &number)
+{
+
+    BigNumber result(*this);
+    BigNumber oneBigNumber("1");
+    BigNumber nullBigNumber("0");
+    BigNumber twoBigNumber("2");
+    BigNumber base = *this;
+    BigNumber exp = number;
+
+    while (exp != nullBigNumber)
+    {
+
+        if (exp % 2 != nullBigNumber)
+        {
+            result *= base;
+            exp -= oneBigNumber;
+        }
+        else
+        {
+            result = result.FastSquare();
+            exp -= twoBigNumber;
+        }
+    }
+    return result;
+}

@@ -68,3 +68,48 @@ BigNumber BigNumber::DichatomicExponentiation(BigNumber &number)
     }
     return result;
 }
+
+BigNumber BigNumber::BarretAlgo(BigNumber &mod)
+{
+    if (*this < mod)
+    {
+        return *this; // Если число меньше модуля, просто возвращаем его
+    }
+
+    int k = mod.GetLength(); // Длина числа m
+    BigNumber b_k(1, 1);     // Основание степени b^k
+    for (int i = 0; i < k; ++i)
+    {
+        b_k *= 2; // b^k, так как база 2 (можно изменить для других баз)
+    }
+
+    BigNumber z = (b_k * b_k) / mod; // z = ⌊b^(2k) / m⌋
+
+    // 1. Вычислить q' = [(x / b^(k-1)) * z] / b^(k+1)
+    BigNumber x_div_b_k_1 = *this / b_k;           // x / b^(k-1)
+    BigNumber q = (x_div_b_k_1 * z) / (b_k * b_k); // q'
+
+    // 2. Вычислить r1 = x mod b^(k+1), r2 = (q' * m) mod b^(k+1)
+    BigNumber b_k_plus_1 = b_k * 2; // b^(k+1)
+    BigNumber r1 = *this % b_k_plus_1;
+    BigNumber r2 = (q * mod) % b_k_plus_1;
+
+    // 3. r' = r1 - r2, если r1 >= r2, иначе r' = b^(k+1) + r1 - r2
+    BigNumber r_prime;
+    if (r1 >= r2)
+    {
+        r_prime = r1 - r2;
+    }
+    else
+    {
+        r_prime = b_k_plus_1 + r1 - r2;
+    }
+
+    // 4. Пока r' >= m, уменьшаем r' на m
+    while (r_prime >= mod)
+    {
+        r_prime -= mod;
+    }
+
+    return r_prime;
+}

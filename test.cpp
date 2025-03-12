@@ -188,11 +188,23 @@ void DichatomicExponentiationTest()
     std::cin >> BNe;
     std::cout << "BN result: " << BNp.DichatomicExponentiation(BNe);
 }
+
+void BarretAlgoTest()
+{
+    big_number::BigNumber BNp;
+    big_number::BigNumber BNe;
+    std::cout << "BN to mos: ";
+    std::cin >> BNp;
+    std::cout << "BN as mod: ";
+    std::cin >> BNe;
+    std::cout << "BN result: " << BNp.BarretAlgo(BNe);
+}
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
     // FastSquareTest();
-    DichatomicExponentiationTest();
+    // DichatomicExponentiationTest();
+    BarretAlgoTest();
     return 0;
 }

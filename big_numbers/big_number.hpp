@@ -141,7 +141,11 @@ class BigNumber
     /// @brief Быстрое возведение в квадрат на основе алгоритма с оптимизацией
     BigNumber FastSquare();
 
+    /// @brief Дихотомический алгоритм возведения в степень
     BigNumber DichatomicExponentiation(BigNumber &number);
+
+    /// @brief Алгоритм Барретта
+    BigNumber BarretAlgo(BigNumber &number);
 
   private:
     // Статическая вспомогательная функция деления по алгоритму Кнута,

@@ -39,7 +39,5 @@ BigNumber BigNumber::FastSquare()
 
     // Удалим ведущие нули, если они есть
     result.NormalizeLength();
-
-    // Присвоим результат обратно текущему объекту
     return result;
 }

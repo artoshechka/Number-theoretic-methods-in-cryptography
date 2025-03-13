@@ -22,22 +22,21 @@ BigNumber BigNumber::FastSquare()
         // 2.2.
         for (int j = i + 1; j < length_; j++)
         {
-            FoursBaseType tripledTemp = static_cast<FoursBaseType>(result.coefficients_[i + j]) +
-                                        static_cast<FoursBaseType>(2) * (static_cast<FoursBaseType>(coefficients_[i]) *
-                                                                         static_cast<FoursBaseType>(coefficients_[j])) +
-                                        static_cast<FoursBaseType>(carry);
+            FoursBaseType extendedTemp =
+                static_cast<FoursBaseType>(result.coefficients_[i + j]) +
+                static_cast<FoursBaseType>(2) *
+                    (static_cast<FoursBaseType>(coefficients_[i]) * static_cast<FoursBaseType>(coefficients_[j])) +
+                static_cast<FoursBaseType>(carry);
 
-            result.coefficients_[i + j] = static_cast<BaseType>(tripledTemp);
+            result.coefficients_[i + j] = static_cast<BaseType>(extendedTemp);
 
-            carry = static_cast<DoubleBaseType>(tripledTemp) >> BASE_SIZE;
+            carry = static_cast<DoubleBaseType>(extendedTemp) >> BASE_SIZE;
         }
 
-        // После цикла по j, если есть перенос, добавим его «выше»
         result.coefficients_[i + length_] += static_cast<BaseType>(carry);
         result.coefficients_[i + length_ + 1] += static_cast<BaseType>(carry >> BASE_SIZE);
     }
 
-    // Удалим ведущие нули, если они есть
     result.NormalizeLength();
     return result;
 }

@@ -1,5 +1,6 @@
 #include "big_number.hpp"
 #include <cassert>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 
@@ -170,12 +171,26 @@ void FastSquareTest()
 {
     big_number::BigNumber BN;
     std::cin >> BN;
+
+    auto start_multiply = std::chrono::high_resolution_clock::now();
     auto multiply = BN * BN;
+    auto end_multiply = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_multiply = end_multiply - start_multiply;
+
     std::cout << "BN: " << BN << std::endl << "BN*BN:\n " << multiply << std::endl;
+
+    auto start_square = std::chrono::high_resolution_clock::now();
     auto square = BN.FastSquare();
+    auto end_square = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_square = end_square - start_square;
+
     std::cout << "BN.FastSquare():\n " << square << std::endl;
+
     if (multiply == square)
-        std::cout << "--- BNs are EQUAL ---";
+        std::cout << "--- BNs are EQUAL ---\n";
+
+    std::cout << "Multiplication took " << duration_multiply.count() << " seconds\n";
+    std::cout << "FastSquare took " << duration_square.count() << " seconds\n";
 }
 
 void DichatomicExponentiationTest()
@@ -186,7 +201,14 @@ void DichatomicExponentiationTest()
     std::cin >> BNp;
     std::cout << "BN as exp: ";
     std::cin >> BNe;
-    std::cout << "BN result: " << BNp.DichatomicExponentiation(BNe);
+
+    auto start_pow = std::chrono::high_resolution_clock::now();
+    auto result_pow = BNp.DichatomicExponentiation(BNe);
+    auto end_pow = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_pow = end_pow - start_pow;
+
+    std::cout << "BN result: " << result_pow << std::endl;
+    std::cout << "DichatomicExponentiation took " << duration_pow.count() << " seconds\n";
 }
 
 void BarretAlgoTest()
@@ -197,7 +219,14 @@ void BarretAlgoTest()
     std::cin >> BNp;
     std::cout << "BN as mod: ";
     std::cin >> BNe;
-    std::cout << "BN result: " << BNp.BarretAlgo(BNe);
+
+    auto start_barret = std::chrono::high_resolution_clock::now();
+    auto result_barret = BNp.BarretAlgo(BNe);
+    auto end_barret = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_barret = end_barret - start_barret;
+
+    std::cout << "BN result: " << result_barret << std::endl;
+    std::cout << "BarretAlgo took " << duration_barret.count() << " seconds\n";
 }
 int main()
 {

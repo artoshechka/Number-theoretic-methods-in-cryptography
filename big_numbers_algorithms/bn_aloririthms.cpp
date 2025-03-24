@@ -41,29 +41,23 @@ BigNumber BigNumber::FastSquare()
     return result;
 }
 
-BigNumber BigNumber::DichatomicExponentiation(BigNumber &number)
+BigNumber BigNumber::DichatomicExponentiation(const BigNumber &exp) const
 {
-
-    BigNumber result(*this);
-    BigNumber oneBigNumber("1");
-    BigNumber nullBigNumber("0");
-    BigNumber twoBigNumber("2");
+    BigNumber result(1, 1); // Начинаем с 1
     BigNumber base = *this;
-    BigNumber exp = number;
+    BigNumber exponent = exp;
+    BigNumber zero(1, 0);
+    BigNumber one(1, 1);
+    BigNumber two(1, 2);
 
-    while (exp != nullBigNumber)
+    while (exponent != zero)
     {
-
-        if (exp % 2 != nullBigNumber)
+        if (exponent % two == one)
         {
             result *= base;
-            exp -= oneBigNumber;
         }
-        else
-        {
-            result = result.FastSquare();
-            exp -= twoBigNumber;
-        }
+        base = base.FastSquare();
+        exponent = exponent / two;
     }
     return result;
 }

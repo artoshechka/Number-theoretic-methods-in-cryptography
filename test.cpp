@@ -207,8 +207,30 @@ void DichatomicExponentiationTest()
     auto end_pow = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration_pow = end_pow - start_pow;
 
-    std::cout << "BN result: " << result_pow << std::endl;
+    auto start_loop = std::chrono::high_resolution_clock::now();
+    big_number::BigNumber result_loop(1, 1); // Инициализируем результат единицей
+    big_number::BigNumber one(1, 1);
+    big_number::BigNumber counter(1, 0); // Счётчик, начинаем с 0
+
+    // Предполагается, что экспонента BNe неотрицательная
+    while (counter < BNe)
+    {
+        result_loop = result_loop * BNp;
+        counter = counter + one; // Увеличиваем счётчик на 1
+    }
+    auto end_loop = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_loop = end_loop - start_loop;
+
+    std::cout << "DichatomicExponentiation result: " << result_pow << std::endl;
+    std::cout << "Cyclic result: " << result_loop << std::endl;
+
     std::cout << "DichatomicExponentiation took " << duration_pow.count() << " seconds\n";
+    std::cout << "Cyclic took " << duration_loop.count() << " seconds\n";
+
+    if (result_pow == result_loop)
+    {
+        std::cout << "equal";
+    }
 }
 
 void BarretAlgoTest()
@@ -233,7 +255,7 @@ int main()
     srand(static_cast<unsigned int>(time(NULL)));
 
     // FastSquareTest();
-    // DichatomicExponentiationTest();
-    BarretAlgoTest();
+    DichatomicExponentiationTest();
+    // BarretAlgoTest();
     return 0;
 }

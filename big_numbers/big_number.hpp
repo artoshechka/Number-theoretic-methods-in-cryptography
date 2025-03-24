@@ -205,7 +205,7 @@ class BigNumber
     /// @brief Дихотомический алгоритм возведения в степень
     /// @param[in] number Число для возведения в степень
     /// @return Результат возведения в степень
-    BigNumber DichatomicExponentiation(BigNumber &number);
+    BigNumber DichatomicExponentiation(const BigNumber &number) const;
 
     /// @brief Алгоритм Барретта
     /// @param[in] number Число для алгоритма Барретта

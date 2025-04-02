@@ -237,25 +237,33 @@ void BarretAlgoTest()
 {
     big_number::BigNumber BNp;
     big_number::BigNumber BNe;
-    std::cout << "BN to mos: ";
+    std::cout << "BN to mod: ";
     std::cin >> BNp;
     std::cout << "BN as mod: ";
     std::cin >> BNe;
 
+    // Проверка стандартного остатка от деления
+    auto start = std::chrono::high_resolution_clock::now();
+    auto expected_result = BNp % BNe;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+
+    // Проверка алгоритма Барретта
     auto start_barret = std::chrono::high_resolution_clock::now();
     auto result_barret = BNp.BarretAlgo(BNe);
     auto end_barret = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration_barret = end_barret - start_barret;
 
     std::cout << "BN result: " << result_barret << std::endl;
+    std::cout << "% result: " << expected_result << std::endl;
     std::cout << "BarretAlgo took " << duration_barret.count() << " seconds\n";
+    std::cout << "% took " << duration.count() << " seconds\n";
 }
+
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    // FastSquareTest();
-    DichatomicExponentiationTest();
-    // BarretAlgoTest();
+    BarretAlgoTest();
     return 0;
 }

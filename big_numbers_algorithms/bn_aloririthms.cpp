@@ -15,9 +15,9 @@ BigNumber BigNumber::FastSquare()
         DoubleBaseType doubledTemp =
             static_cast<DoubleBaseType>(result.coefficients_[2 * i]) +
             static_cast<DoubleBaseType>(coefficients_[i]) * static_cast<DoubleBaseType>(coefficients_[i]);
-        DoubleBaseType carry = doubledTemp >> BASE_SIZE;
+        DoubleBaseType carry = doubledTemp / BASE_SIZE;
 
-        result.coefficients_[2 * i] = static_cast<BaseType>(doubledTemp);
+        result.coefficients_[2 * i] = static_cast<BaseType>(doubledTemp % BASE_SIZE);
 
         // 2.2.
         for (int j = i + 1; j < length_; j++)
@@ -28,13 +28,13 @@ BigNumber BigNumber::FastSquare()
                     (static_cast<FoursBaseType>(coefficients_[i]) * static_cast<FoursBaseType>(coefficients_[j])) +
                 static_cast<FoursBaseType>(carry);
 
-            result.coefficients_[i + j] = static_cast<BaseType>(extendedTemp);
+            result.coefficients_[i + j] = static_cast<BaseType>(extendedTemp % BASE_SIZE);
 
-            carry = static_cast<DoubleBaseType>(extendedTemp) >> BASE_SIZE;
+            carry = static_cast<DoubleBaseType>(extendedTemp) / BASE_SIZE;
         }
 
-        result.coefficients_[i + length_] += static_cast<BaseType>(carry);
-        result.coefficients_[i + length_ + 1] += static_cast<BaseType>(carry >> BASE_SIZE);
+        result.coefficients_[i + length_] += static_cast<BaseType>(carry % BASE_SIZE);
+        result.coefficients_[i + length_ + 1] += static_cast<BaseType>(carry / BASE_SIZE);
     }
 
     result.NormalizeLength();
@@ -46,63 +46,101 @@ BigNumber BigNumber::DichatomicExponentiation(const BigNumber &exp) const
     BigNumber result(1, 1); // Начинаем с 1
     BigNumber base = *this;
     BigNumber exponent = exp;
+    
+    // Получаем бинарное представление экспоненты
+    std::vector<bool> binary_exp;
     BigNumber zero(1, 0);
-    BigNumber one(1, 1);
-    BigNumber two(1, 2);
-
-    while (exponent != zero)
+    
+    // Преобразование экспоненты в двоичную форму без деления
+    while (exponent > zero)
     {
-        if (exponent % two == one)
+        // Проверяем четность через последний коэффициент
+        binary_exp.push_back(exponent.coefficients_[0] % 2 == 1);
+        
+        // Деление на 2 через сдвиг вправо
+        BigNumber shifted(exponent.length_);
+        BaseType carry = 0;
+        
+        for (int i = exponent.length_ - 1; i >= 0; i--)
+        {
+            DoubleBaseType current = exponent.coefficients_[i] + static_cast<DoubleBaseType>(carry) * BASE_SIZE;
+            shifted.coefficients_[i] = static_cast<BaseType>(current / 2);
+            carry = current % 2;
+        }
+        
+        shifted.NormalizeLength();
+        exponent = shifted;
+    }
+    
+    // Алгоритм быстрого возведения в степень с использованием битового представления
+    for (int i = 0; i < binary_exp.size(); i++)
+    {
+        if (binary_exp[i])
         {
             result *= base;
         }
-        base = base.FastSquare();
-        exponent = exponent / two;
+        
+        // Продолжаем возводить в квадрат, кроме последней итерации
+        if (i < binary_exp.size() - 1)
+        {
+            base = base.FastSquare();
+        }
     }
+    
     return result;
 }
 
 BigNumber BigNumber::BarretAlgo(BigNumber &mod)
 {
-    if (*this < mod)
-    {
-        return *this; // Если число меньше модуля, просто возвращаем его
+    // Проверка на корректность модуля
+    if (mod <= BigNumber(1, 0)) {
+        throw std::invalid_argument("Модуль должен быть положительным числом.");
     }
 
-    int k = mod.GetLength(); // Длина числа m
-    BigNumber b_k(1, 1);     // Основание степени b^k
-    for (int i = 0; i < k; ++i)
-    {
-        b_k *= 2; // b^k, так как база 2 (можно изменить для других баз)
+    // Если число меньше модуля, возвращаем его как есть
+    if (*this < mod) {
+        return *this;
     }
 
-    BigNumber z = (b_k * b_k) / mod; // z = ⌊b^(2k) / m⌋
-
-    // 1. Вычислить q' = [(x / b^(k-1)) * z] / b^(k+1)
-    BigNumber x_div_b_k_1 = *this / b_k;           // x / b^(k-1)
-    BigNumber q = (x_div_b_k_1 * z) / (b_k * b_k); // q'
-
-    // 2. Вычислить r1 = x mod b^(k+1), r2 = (q' * m) mod b^(k+1)
-    BigNumber b_k_plus_1 = b_k * 2; // b^(k+1)
-    BigNumber r1 = *this % b_k_plus_1;
-    BigNumber r2 = (q * mod) % b_k_plus_1;
-
-    // 3. r' = r1 - r2, если r1 >= r2, иначе r' = b^(k+1) + r1 - r2
-    BigNumber r_prime;
-    if (r1 >= r2)
-    {
-        r_prime = r1 - r2;
+    // Определяем значение k - длина модуля + 1
+    int k = mod.length_ + 1;
+    
+    // Вычисляем b^(2k) - степень основания системы счисления
+    BigNumber base_power_2k(1, 1);
+    BigNumber base(1, BASE_SIZE);  // Основание системы счисления
+    
+    // Быстрое вычисление степени через дихотомическое возведение в степень
+    BigNumber exponent(1, 2 * k);
+    base_power_2k = base.DichatomicExponentiation(exponent);
+    
+    // Вычисляем μ = ⌊b^(2k)/m⌋
+    BigNumber mu = base_power_2k / mod;
+    
+    // Вычисляем q' = ⌊(x·μ)/b^(2k)⌋
+    BigNumber q_prime = (*this * mu) / base_power_2k;
+    
+    // Проверка: если q_prime * mod > *this, уменьшаем q_prime на 1
+    BigNumber product = q_prime * mod;
+    if (product > *this) {
+        BigNumber one(1, 1);
+        q_prime = q_prime - one;
+        product = q_prime * mod;
     }
-    else
-    {
-        r_prime = b_k_plus_1 + r1 - r2;
+    
+    // Вычисляем r = x - q'·m
+    BigNumber r;
+    if (*this >= product) {
+        r = *this - product;
+    } else {
+        // Если всё ещё возникает проблема, используем стандартное вычисление остатка
+        r = *this % mod;
+        return r;
     }
-
-    // 4. Пока r' >= m, уменьшаем r' на m
-    while (r_prime >= mod)
-    {
-        r_prime -= mod;
+    
+    // Нормализация результата: пока r >= m, вычитаем m
+    while (r >= mod) {
+        r = r - mod;
     }
-
-    return r_prime;
+    
+    return r;
 }

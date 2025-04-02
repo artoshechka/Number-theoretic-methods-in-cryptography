@@ -45,10 +45,33 @@ BigNumber BigNumber::DichatomicExponentiation(const BigNumber &exp) const
 {
     BigNumber result(1, 1); // Начинаем с 1
     BigNumber base = *this;
-    
+    BigNumber exponent = exp;
+
     // Получаем бинарное представление экспоненты
-    std::vector<bool> binary_exp = exp.ToBinary();
-    
+    std::vector<bool> binary_exp;
+    BigNumber zero(1, 0);
+
+    // Преобразование экспоненты в двоичную форму без деления
+    while (exponent > zero)
+    {
+        // Проверяем четность через последний коэффициент
+        binary_exp.push_back(exponent.coefficients_[0] % 2 == 1);
+
+        // Деление на 2 через сдвиг вправо
+        BigNumber shifted(exponent.length_);
+        BaseType carry = 0;
+
+        for (int i = exponent.length_ - 1; i >= 0; i--)
+        {
+            DoubleBaseType current = exponent.coefficients_[i] + static_cast<DoubleBaseType>(carry) * BASE_SIZE;
+            shifted.coefficients_[i] = static_cast<BaseType>(current / 2);
+            carry = current % 2;
+        }
+
+        shifted.NormalizeLength();
+        exponent = shifted;
+    }
+
     // Алгоритм быстрого возведения в степень с использованием битового представления
     for (int i = 0; i < binary_exp.size(); i++)
     {
@@ -56,14 +79,14 @@ BigNumber BigNumber::DichatomicExponentiation(const BigNumber &exp) const
         {
             result *= base;
         }
-        
+
         // Продолжаем возводить в квадрат, кроме последней итерации
         if (i < binary_exp.size() - 1)
         {
             base = base.FastSquare();
         }
     }
-    
+
     return result;
 }
 
@@ -127,38 +150,4 @@ BigNumber BigNumber::BarretAlgo(BigNumber &mod)
     }
 
     return r;
-}
-
-// Добавление нового метода для преобразования в двоичное представление
-std::vector<bool> BigNumber::ToBinary() const
-{
-    std::vector<bool> binary;
-    BigNumber temp = *this;
-    BigNumber zero(1, 0);
-    
-    if (temp == zero)
-    {
-        binary.push_back(false);
-        return binary;
-    }
-    
-    // Извлечение битов от младших к старшим
-    while (temp != zero)
-    {
-        // Проверка четности по последнему биту младшего коэффициента
-        binary.push_back(temp.coefficients_[0] & 1);
-        
-        // Сдвиг вправо на 1 бит (деление на 2 без использования оператора деления)
-        BaseType carry = 0;
-        for (int i = temp.length_ - 1; i >= 0; i--)
-        {
-            DoubleBaseType current = temp.coefficients_[i];
-            temp.coefficients_[i] = (current >> 1) | (carry << (BASE_SIZE - 1));
-            carry = current & 1;
-        }
-        
-        temp.NormalizeLength();
-    }
-    
-    return binary;
 }

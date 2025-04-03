@@ -255,7 +255,7 @@ void BarretAlgoTest()
     std::chrono::duration<double> duration_barret = end_barret - start_barret;
 
     std::cout << "BN result: " << result_barret << std::endl;
-    std::cout << "% result: " << expected_result << std::endl;
+    std::cout << "% result:  " << expected_result << std::endl;
     std::cout << "BarretAlgo took " << duration_barret.count() << " seconds\n";
     std::cout << "% took " << duration.count() << " seconds\n";
 }

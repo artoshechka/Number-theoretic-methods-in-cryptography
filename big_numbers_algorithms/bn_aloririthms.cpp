@@ -46,108 +46,98 @@ BigNumber BigNumber::DichatomicExponentiation(const BigNumber &exp) const
     BigNumber result(1, 1); // Начинаем с 1
     BigNumber base = *this;
     BigNumber exponent = exp;
-
-    // Получаем бинарное представление экспоненты
-    std::vector<bool> binary_exp;
     BigNumber zero(1, 0);
+    BigNumber one(1, 1);
+    BigNumber two(1, 2);
 
-    // Преобразование экспоненты в двоичную форму без деления
-    while (exponent > zero)
+    while (exponent != zero)
     {
-        // Проверяем четность через последний коэффициент
-        binary_exp.push_back(exponent.coefficients_[0] % 2 == 1);
-
-        // Деление на 2 через сдвиг вправо
-        BigNumber shifted(exponent.length_);
-        BaseType carry = 0;
-
-        for (int i = exponent.length_ - 1; i >= 0; i--)
-        {
-            DoubleBaseType current = exponent.coefficients_[i] + static_cast<DoubleBaseType>(carry) * BASE_SIZE;
-            shifted.coefficients_[i] = static_cast<BaseType>(current / 2);
-            carry = current % 2;
-        }
-
-        shifted.NormalizeLength();
-        exponent = shifted;
-    }
-
-    // Алгоритм быстрого возведения в степень с использованием битового представления
-    for (int i = 0; i < binary_exp.size(); i++)
-    {
-        if (binary_exp[i])
+        if (exponent % two == one)
         {
             result *= base;
         }
-
-        // Продолжаем возводить в квадрат, кроме последней итерации
-        if (i < binary_exp.size() - 1)
-        {
-            base = base.FastSquare();
-        }
+        base = base.FastSquare();
+        exponent = exponent / two;
     }
-
     return result;
 }
 
-BigNumber BigNumber::BarretAlgo(BigNumber &mod)
+BigNumber BigNumber::BarretAlgo(const BigNumber &m) const
 {
-    // Проверка на корректность модуля
-    if (mod <= BigNumber(1, 0))
+    if (m <= BigNumber("0"))
     {
-        throw std::invalid_argument("Модуль должен быть положительным числом.");
+        throw std::invalid_argument("The modulus must be a positive number.");
     }
-
-    // Если число меньше модуля, возвращаем его как есть
-    if (*this < mod)
+    if (*this < m)
     {
         return *this;
     }
 
-    // Определяем значение k - длина модуля + 1
-    int k = mod.length_ + 1;
-
-    // Вычисляем b^(2k) - степень основания системы счисления
-    BigNumber base_power_2k(1, 1);
-    BigNumber base(1, BASE_SIZE); // Основание системы счисления
-
-    // Быстрое вычисление степени через дихотомическое возведение в степень
-    BigNumber exponent(1, 2 * k);
-    base_power_2k = base.DichatomicExponentiation(exponent);
-
-    // Вычисляем μ = ⌊b^(2k)/m⌋
-    BigNumber mu = base_power_2k / mod;
-
-    // Вычисляем q' = ⌊(x·μ)/b^(2k)⌋
-    BigNumber q_prime = (*this * mu) / base_power_2k;
-
-    // Проверка: если q_prime * mod > *this, уменьшаем q_prime на 1
-    BigNumber product = q_prime * mod;
-    if (product > *this)
+    int k = m.length_;
+    if (this->length_ > 2 * k)
     {
-        BigNumber one(1, 1);
-        q_prime = q_prime - one;
-        product = q_prime * mod;
+        throw std::invalid_argument("Invalid data.");
+    }
+    BigNumber base("10");
+
+    if (k == 0)
+    {
+        return *this;
     }
 
-    // Вычисляем r = x - q'·m
-    BigNumber r;
-    if (*this >= product)
+    // Вычисление b^(k)
+    BigNumber base_power_k("1");
+    BigNumber base_bn(base);
+
+    for (int i = 0; i < k; ++i)
     {
-        r = *this - product;
+        base_power_k = base_bn * base_power_k;
+
+        if (base_power_k == BigNumber("0"))
+        {
+            throw std::runtime_error("Exponentiation failed, base_power_k is zero!");
+        }
+    }
+
+    // Вычисление b^(2k)
+    BigNumber base_power_2k = base_power_k * base_power_k;
+
+    // Вычисление z = (b^(2k) / m)
+    BigNumber z = base_power_2k / m;
+
+    // Вычисление b^(k-1) и b^(k+1)
+    BigNumber b_k_minus_1 = base_power_2k / base;
+    BigNumber b_k_plus_1 = base_power_2k * base;
+
+    if (b_k_plus_1 == BigNumber("0"))
+    {
+        throw std::runtime_error("Division by zero: b_k_plus_1 is zero!");
+    }
+    // Вычисление q' = (x * z) / b^(2k)
+    BigNumber q_prime = (*this * z) / base_power_2k;
+    // BigNumber q_prime = ((*this / b_k_minus_1) * z) / b_k_plus_1;
+
+    // Вычисление r1 и r2
+    BigNumber r1 = *this % b_k_plus_1;
+    BigNumber r2 = (q_prime * m) % b_k_plus_1;
+    BigNumber r = *this - q_prime * m;
+
+    // Инициализация переменной r_
+    BigNumber r_;
+
+    if (r1 >= r2)
+    {
+        r_ = r1 - r2;
     }
     else
     {
-        // Если всё ещё возникает проблема, используем стандартное вычисление остатка
-        r = *this % mod;
-        return r;
+        r_ = b_k_plus_1 + r1 - r2;
     }
+    r = r % m;
 
-    // Нормализация результата: пока r >= m, вычитаем m
-    while (r >= mod)
+    while (r_ >= m)
     {
-        r = r - mod;
+        r_ = r_ - m;
     }
-
     return r;
 }

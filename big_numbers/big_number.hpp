@@ -210,11 +210,7 @@ class BigNumber
     /// @brief Алгоритм Барретта
     /// @param[in] number Число для алгоритма Барретта
     /// @return Результат алгоритма Барретта
-    BigNumber BarretAlgo(BigNumber &number);
-
-    /// @brief Преобразует число в двоичное представление
-    /// @return Вектор булевых значений (от младших битов к старшим)
-    std::vector<bool> ToBinary() const;
+    BigNumber BarretAlgo(const BigNumber &number) const;
 
   private:
     // Статическая вспомогательная функция деления по алгоритму Кнута,

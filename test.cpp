@@ -5,7 +5,68 @@
 #include <sstream>
 
 using namespace big_number;
+namespace ErrorProb
+{
+BigNumber Pow(const BigNumber &number, const BigNumber &exp)
+{
+    BigNumber result("1");
+    for (big_number::BigNumber i("0"); i < exp; i += BigNumber("1"))
+    {
+        result = result * number;
+    }
+    return result;
+};
+// Вспомогательная функция: φ(n)
+BigNumber GCD(BigNumber a, BigNumber b)
+{
+    BigNumber zero("0");
+    while (b != zero)
+    {
+        BigNumber temp(b);
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
 
+BigNumber EulerTotient(const BigNumber &n)
+{
+    BigNumber count("0");
+    BigNumber one("1");
+
+    for (BigNumber i = one; i < n; i = i + one)
+    {
+        if (GCD(i, n) == one)
+        {
+            count = count + one;
+        }
+    }
+
+    return count;
+}
+
+std::pair<BigNumber, BigNumber> Fermat(const BigNumber &n, size_t reliabilityParameter)
+{
+    BigNumber phi = Pow(EulerTotient(n), BigNumber(std::to_string(reliabilityParameter)));
+    BigNumber den = Pow(n, BigNumber(std::to_string(reliabilityParameter)));
+    return {phi, den};
+}
+
+std::pair<BigNumber, BigNumber> MillerRabin(const BigNumber &n, size_t reliabilityParameter)
+{
+    BigNumber phi = Pow(EulerTotient(n), BigNumber(std::to_string(reliabilityParameter)));
+    BigNumber den = Pow((n * BigNumber("2")), BigNumber(std::to_string(reliabilityParameter)));
+    return {phi, den};
+}
+
+std::pair<BigNumber, BigNumber> SoloveyStrassen(const BigNumber &n, size_t reliabilityParameter)
+{
+    BigNumber phi = Pow(EulerTotient(n), BigNumber(std::to_string(reliabilityParameter)));
+    BigNumber den = Pow((n * BigNumber("4")), BigNumber(std::to_string(reliabilityParameter)));
+    return {phi, den};
+}
+
+} // namespace ErrorProb
 // Вспомогательная функция для получения строкового представления BigNumber через operator<<.
 std::string toString(const BigNumber &num)
 {
@@ -260,10 +321,76 @@ void BarretAlgoTest()
     std::cout << "% took " << duration.count() << " seconds\n";
 }
 
+void FermatTestTest(BigNumber BN, size_t param)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    bool expected_result = BN.FermatTest(param);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+
+    std::cout << "Fermat Test result: " << expected_result << std::endl;
+    std::cout << "Fermat Test took: " << duration.count() << std::endl;
+
+    if (expected_result)
+    {
+        auto resError = ErrorProb::Fermat(BN, param);
+        std::cout << "Error chance: " << resError.first << " / " << resError.second << "\n";
+    }
+}
+
+void MillerRabinTestTest(BigNumber BN, size_t param)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    bool expected_result = BN.MillerRabinTest(param);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+
+    std::cout << "MillerRabin Test result: " << expected_result << std::endl;
+    std::cout << "MillerRabin Test took: " << duration.count() << std::endl;
+
+    if (expected_result)
+    {
+        auto resError = ErrorProb::MillerRabin(BN, param);
+        std::cout << "Error chance: " << resError.first << " / " << resError.second << "\n";
+    }
+}
+void SoloveyStrassenTestTest(BigNumber BN, size_t param)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    bool expected_result = BN.SoloveyStrassenTest(param);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+
+    std::cout << "SoloveyStrassen Test result: " << expected_result << std::endl;
+    std::cout << "SoloveyStrassen Test took: " << duration.count() << std::endl;
+    if (expected_result)
+    {
+        auto resError = ErrorProb::SoloveyStrassen(BN, param);
+        std::cout << "Error chance: " << resError.first << " / " << resError.second << "\n";
+    }
+}
+
+void CompleteTest()
+{
+    big_number::BigNumber BN;
+    std::cout << "BN to check: ";
+    std::cin >> BN;
+    size_t param;
+    std::cout << "Enter readability parameter: ";
+    std::cin >> param;
+
+    std::cout << "\n";
+    FermatTestTest(BN, param);
+    std::cout << "\n";
+    MillerRabinTestTest(BN, param);
+    std::cout << "\n";
+    SoloveyStrassenTestTest(BN, param);
+}
+
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    BarretAlgoTest();
+    CompleteTest();
     return 0;
 }

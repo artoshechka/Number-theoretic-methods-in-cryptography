@@ -212,6 +212,27 @@ class BigNumber
     /// @return Результат алгоритма Барретта
     BigNumber BarretAlgo(const BigNumber &number) const;
 
+    /// @brief Генерирует случайное БЧ в диапазоне
+    /// @param startValue нижняя граница диапазона
+    /// @param endValue верхняя граница диапазона
+    /// @return Сгенерированное БЧ
+    BigNumber Generator(int length, BigNumber startValue, BigNumber endValue);
+
+    /// @brief Тест на простоту числа по Ферма
+    /// @param number БЧ
+    /// @return True, если простое
+    bool FermatTest(size_t reliabilityParameter);
+
+    /// @brief Тест на простоту числа по Миллер-Рабину
+    /// @param number БЧ
+    /// @return True, если простое
+    bool MillerRabinTest(size_t reliabilityParameter);
+
+    /// @brief Тест на простоту числа по Соловею-Штрассену
+    /// @param number БЧ
+    /// @return True, если простое
+    bool SoloveyStrassenTest(size_t reliabilityParameter);
+
   private:
     // Статическая вспомогательная функция деления по алгоритму Кнута,
     // которая имеет доступ к защищённым членам класса.

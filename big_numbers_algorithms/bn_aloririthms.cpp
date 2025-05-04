@@ -1,6 +1,68 @@
 #include "big_number.hpp"
 
 using big_number::BigNumber;
+namespace
+{
+BigNumber Pow(const BigNumber &number, const BigNumber &exp)
+{
+    BigNumber result("1");
+    for (big_number::BigNumber i("0"); i < exp; i += BigNumber("1"))
+    {
+        result = result * number;
+    }
+    return result;
+};
+
+int JacobiNumbers(const BigNumber &a, const BigNumber &n)
+{
+    if (a == BigNumber("0"))
+    {
+        return 0;
+    }
+    if (a == BigNumber("1"))
+    {
+        return 1;
+    }
+    BigNumber k = BigNumber("0");
+    BigNumber a1 = a;
+
+    while (a1 % BigNumber("2") == BigNumber("0"))
+    {
+        a1 = a1 / BigNumber("2");
+        k = k + BigNumber("1");
+    }
+
+    int s;
+    if (k % BigNumber("2") == BigNumber("0"))
+    {
+        s = 1;
+    }
+    else
+    {
+        BigNumber n_mod8 = n % BigNumber("8");
+        if (n_mod8 == BigNumber("1") || n_mod8 == BigNumber("7"))
+        {
+            s = 1;
+        }
+        else
+        {
+            s = -1;
+        }
+    }
+    if (n % BigNumber("4") == BigNumber("3") && a1 % BigNumber("4") == BigNumber("3"))
+    {
+        s = -s;
+    }
+    if (a1 == BigNumber("1"))
+    {
+        return s;
+    }
+    else
+    {
+        return s * JacobiNumbers(n % a1, a1);
+    }
+};
+} // namespace
 
 BigNumber BigNumber::FastSquare()
 {
@@ -140,4 +202,126 @@ BigNumber BigNumber::BarretAlgo(const BigNumber &m) const
         r_ = r_ - m;
     }
     return r;
+}
+
+BigNumber BigNumber::Generator(int length, BigNumber startValue, BigNumber endValue)
+{
+    BigNumber number(length);
+
+    number.length_ = length;
+    for (int i = 0; i < number.maxLength_; i++)
+    {
+        number.coefficients_[i] = rand();
+    }
+    if (sizeof(BaseType) == sizeof(unsigned int))
+    { // увеличинная генерация больших чтсел в основании с int
+        for (int i = 0; i < number.maxLength_; ++i)
+        {
+            number.coefficients_[i] <<= 16;
+            number.coefficients_[i] |= rand();
+        }
+    }
+    number = number % (endValue - startValue + BigNumber("1")) + startValue;
+    return number;
+}
+
+bool BigNumber::FermatTest(size_t reliabilityParameter)
+{
+    if (*this < BigNumber("4"))
+    {
+        throw std::invalid_argument("N must be grater then 3");
+    }
+
+    if (*this % BigNumber("2") == BigNumber("0"))
+    {
+        return false;
+    }
+    for (size_t i = 0; i < reliabilityParameter; ++i)
+    {
+        auto randBN = Generator(length_, BigNumber("2"), (*this - BigNumber("2")));
+
+        if ((Pow(randBN, (*this - BigNumber("1"))) % *this) != BigNumber("1"))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool BigNumber::MillerRabinTest(size_t reliabilityParameter)
+{
+    if (*this < BigNumber("4"))
+    {
+        throw std::invalid_argument("N must be grater then 3");
+    }
+    if (*this % BigNumber("2") == BigNumber("0"))
+    {
+        return false;
+    }
+    BigNumber s("0");
+    BigNumber r = *this - BigNumber("1");
+
+    while (r % BigNumber("2") == BigNumber("0"))
+    {
+        r = r / BigNumber("2");
+        s += BigNumber("1");
+    }
+
+    for (size_t i = 0; i < reliabilityParameter; ++i)
+    {
+        auto randBN = Generator(length_, BigNumber("2"), (*this - BigNumber("2")));
+
+        BigNumber y = Pow(randBN, r) % *this;
+
+        if (!((y == BigNumber("1")) || (y == *this - BigNumber("1"))))
+        {
+            BigNumber j("1");
+            while (j < s && !(y == *this - BigNumber("1")))
+            {
+                y = Pow(y, BigNumber("2")) % *this;
+                if (y == BigNumber("1"))
+                {
+                    return false;
+                }
+                j += BigNumber("1");
+            }
+            if (!(y == *this - BigNumber("1")))
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool BigNumber::SoloveyStrassenTest(size_t reliabilityParameter)
+{
+    if (*this < BigNumber("4"))
+    {
+        throw std::invalid_argument("N must be grater then 3");
+    }
+
+    if (*this % BigNumber("2") == BigNumber("0"))
+    {
+        return false;
+    }
+    for (size_t i = 0; i < reliabilityParameter; ++i)
+    {
+        auto randBN = Generator(length_, BigNumber("2"), (*this - BigNumber("2")));
+        auto r = Pow(randBN, ((*this - BigNumber("1")) / BigNumber("2"))) % *this;
+
+        if (!((r == BigNumber("1")) || (r == *this - BigNumber("1"))))
+        {
+            return false;
+        }
+        auto jacobiNumber = JacobiNumbers(randBN, *this);
+        BigNumber s = (jacobiNumber == -1) ? *this - BigNumber("1") : BigNumber(std::to_string(jacobiNumber));
+
+        if (r != s)
+        {
+            return false;
+        }
+    }
+    return true;
 }

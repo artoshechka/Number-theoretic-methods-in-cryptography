@@ -204,6 +204,65 @@ BigNumber BigNumber::BarretAlgo(const BigNumber &m) const
     return r;
 }
 
+BigNumber BigNumber::ModularExponentiation(const BigNumber &exponent, const BigNumber &modulus) const
+{
+    // Начинаем с result = 1, приводим базу к модулю
+    BigNumber result("0");
+    BigNumber base(*this);
+
+    std::vector<bool> bits = exponent.ToBinary();
+    for (auto bit : bits)
+    {
+        std::cout << bit << " ";
+    }
+    std::cout << "size:" << bits.size() << std::endl;
+    if (bits[bits.size() - 1] == 0)
+    {
+        result = BigNumber("1");
+    }
+    else
+    {
+        result = *this;
+    }
+    std::cout << "\n" << result;
+
+    for (int i = bits.size() - 2; i >= 0; --i)
+    {
+        std::cout << "\n" << base * base;
+        base = base * base;
+        if (bits[i] == 1)
+        {
+            result = result * base;
+        }
+        std::cout << "\n" << i << " " << base << " " << result << std::endl;
+    }
+    /*// Проходим по всем битам сверху вниз
+    for (bool bit : bits)
+    {
+
+        if (bit)
+        {
+            result = (result * base) % modulus;
+        }
+        base = (base * base) % modulus;
+    }*/
+
+    return result % modulus;
+}
+
+std::vector<bool> BigNumber::ToBinary() const
+{
+    std::vector<bool> bits;
+    BigNumber temp = *this;
+
+    while (temp != BigNumber("0"))
+    {
+        bits.insert(bits.begin(), (temp % BigNumber("2")) == BigNumber("1"));
+        temp = (temp) / BigNumber("2");
+    }
+    return bits;
+}
+
 BigNumber BigNumber::Generator(int length, BigNumber startValue, BigNumber endValue)
 {
     BigNumber number(length);
@@ -239,8 +298,10 @@ bool BigNumber::FermatTest(size_t reliabilityParameter)
     for (size_t i = 0; i < reliabilityParameter; ++i)
     {
         auto randBN = Generator(length_, BigNumber("2"), (*this - BigNumber("2")));
-
-        if ((Pow(randBN, (*this - BigNumber("1"))) % *this) != BigNumber("1"))
+        std::cout << "randGen: " << randBN << " pow: " << (*this - BigNumber("1")) << " mod: " << *this << " equals ->"
+                  << randBN.ModularExponentiation((*this - BigNumber("1")), *this) << std::endl
+                  << std::endl;
+        if (randBN.ModularExponentiation((*this - BigNumber("1")), *this) != BigNumber("1"))
         {
             return false;
         }
@@ -271,14 +332,14 @@ bool BigNumber::MillerRabinTest(size_t reliabilityParameter)
     {
         auto randBN = Generator(length_, BigNumber("2"), (*this - BigNumber("2")));
 
-        BigNumber y = Pow(randBN, r) % *this;
+        BigNumber y = randBN.ModularExponentiation(r, *this);
 
         if (!((y == BigNumber("1")) || (y == *this - BigNumber("1"))))
         {
             BigNumber j("1");
             while (j < s && !(y == *this - BigNumber("1")))
             {
-                y = Pow(y, BigNumber("2")) % *this;
+                y = y.ModularExponentiation(BigNumber("2"), *this);
                 if (y == BigNumber("1"))
                 {
                     return false;
@@ -309,7 +370,7 @@ bool BigNumber::SoloveyStrassenTest(size_t reliabilityParameter)
     for (size_t i = 0; i < reliabilityParameter; ++i)
     {
         auto randBN = Generator(length_, BigNumber("2"), (*this - BigNumber("2")));
-        auto r = Pow(randBN, ((*this - BigNumber("1")) / BigNumber("2"))) % *this;
+        auto r = randBN.ModularExponentiation(((*this - BigNumber("1")) / BigNumber("2")), *this);
 
         if (!((r == BigNumber("1")) || (r == *this - BigNumber("1"))))
         {

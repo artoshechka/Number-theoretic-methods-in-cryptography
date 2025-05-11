@@ -233,6 +233,12 @@ class BigNumber
     /// @return True, если простое
     bool SoloveyStrassenTest(size_t reliabilityParameter);
 
+    // Модульное возведение в степень
+    BigNumber ModularExponentiation(const BigNumber &exponent, const BigNumber &modulus) const;
+
+    // Преобразование числа в двоичный вид (вспомогательный метод)
+    std::vector<bool> ToBinary() const;
+
   private:
     // Статическая вспомогательная функция деления по алгоритму Кнута,
     // которая имеет доступ к защищённым членам класса.

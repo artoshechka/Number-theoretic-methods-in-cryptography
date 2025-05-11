@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.10)
+project(BigNumbersBoostAlgo)
+
+# Используем стандарт C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Указываем, где лежит Boost
+set(BOOST_ROOT "C:/Libs/boost_1_88_0")
+include_directories("${BOOST_ROOT}")
+link_directories("${BOOST_ROOT}/stage/lib")
+
+# Сборка исполняемого файла из main.cpp (или укажите свои .cpp)
+add_executable(BigNumbersBoostAlgo
+    main.cpp
+    algo.hpp      # заголовки
+)
+
+# Линкуем нужные Boost-библиотеки (без префикса lib и без .a)
+target_link_libraries(BigNumbersBoostAlgo PRIVATE
+    libboost_random-mgw13-mt-s-x64-1_88.a
+    libboost_system-mgw13-mt-s-x64-1_88.a
+)

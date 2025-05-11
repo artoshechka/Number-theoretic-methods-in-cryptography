@@ -331,11 +331,12 @@ void FermatTestTest(BigNumber BN, size_t param)
     std::cout << "Fermat Test result: " << expected_result << std::endl;
     std::cout << "Fermat Test took: " << duration.count() << std::endl;
 
-    if (expected_result)
+    /*if (expected_result)
     {
         auto resError = ErrorProb::Fermat(BN, param);
         std::cout << "Error chance: " << resError.first << " / " << resError.second << "\n";
     }
+    */
 }
 
 void MillerRabinTestTest(BigNumber BN, size_t param)
@@ -348,11 +349,11 @@ void MillerRabinTestTest(BigNumber BN, size_t param)
     std::cout << "MillerRabin Test result: " << expected_result << std::endl;
     std::cout << "MillerRabin Test took: " << duration.count() << std::endl;
 
-    if (expected_result)
+    /*if (expected_result)
     {
         auto resError = ErrorProb::MillerRabin(BN, param);
         std::cout << "Error chance: " << resError.first << " / " << resError.second << "\n";
-    }
+    }*/
 }
 void SoloveyStrassenTestTest(BigNumber BN, size_t param)
 {
@@ -363,11 +364,12 @@ void SoloveyStrassenTestTest(BigNumber BN, size_t param)
 
     std::cout << "SoloveyStrassen Test result: " << expected_result << std::endl;
     std::cout << "SoloveyStrassen Test took: " << duration.count() << std::endl;
-    if (expected_result)
+    /*if (expected_result)
     {
         auto resError = ErrorProb::SoloveyStrassen(BN, param);
         std::cout << "Error chance: " << resError.first << " / " << resError.second << "\n";
     }
+    */
 }
 
 void CompleteTest()

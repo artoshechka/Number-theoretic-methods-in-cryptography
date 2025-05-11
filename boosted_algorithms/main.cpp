@@ -15,7 +15,7 @@ double fractionToDouble(const BigNumber &numerator, const BigNumber &denominator
 namespace ErrorProb
 {
 // Оптимизированная функция Эйлера
-BigNumber EulerTotient(const BigNumber &n)
+BigNumber EulerTotaient(const BigNumber &n)
 {
     if (n < 1)
         return 0;
@@ -71,21 +71,19 @@ BigNumber Pow(const BigNumber &base, size_t exp)
 
     return result;
 }
-std::pair<BigNumber, BigNumber> Fermat(const BigNumber &n, size_t k)
+std::pair<BigNumber, BigNumber> Fermat(BigNumber phi, const BigNumber &n, size_t k)
 {
-    BigNumber phi = EulerTotient(n);
     return {Pow(phi, k), Pow(n, k)};
 }
 
-std::pair<BigNumber, BigNumber> MillerRabin(const BigNumber &n, size_t k)
+std::pair<BigNumber, BigNumber> MillerRabin(BigNumber phi, const BigNumber &n, size_t k)
 {
-    BigNumber phi = EulerTotient(n);
     return {Pow(phi, k), Pow(n * 2, k)};
 }
 
-std::pair<BigNumber, BigNumber> SoloveyStrassen(const BigNumber &n, size_t k)
+std::pair<BigNumber, BigNumber> SoloveyStrassen(BigNumber phi, const BigNumber &n, size_t k)
 {
-    BigNumber phi = EulerTotient(n);
+
     return {Pow(phi, k), Pow(n * 4, k)};
 }
 } // namespace ErrorProb
@@ -98,10 +96,6 @@ void FermatTestTest(BigNumber BN, size_t param)
 
     std::cout << "Fermat Test result: " << result << "\n";
     std::cout << "Time: " << std::chrono::duration<double>(end - start).count() << "s\n";
-
-    auto error = ErrorProb::Fermat(BN, param);
-    double error_prob = fractionToDouble(error.first, error.second);
-    std::cout << "Error probability: " << error_prob << " (" << (error_prob * 100) << "%)\n";
 }
 
 void MillerRabinTestTest(BigNumber BN, size_t param)
@@ -112,10 +106,6 @@ void MillerRabinTestTest(BigNumber BN, size_t param)
 
     std::cout << "Miller-Rabin Test result: " << result << "\n";
     std::cout << "Time: " << std::chrono::duration<double>(end - start).count() << "s\n";
-
-    auto error = ErrorProb::MillerRabin(BN, param);
-    double error_prob = fractionToDouble(error.first, error.second);
-    std::cout << "Error probability: " << error_prob << " (" << (error_prob * 100) << "%)\n";
 }
 
 void SoloveyStrassenTestTest(BigNumber BN, size_t param)
@@ -126,10 +116,6 @@ void SoloveyStrassenTestTest(BigNumber BN, size_t param)
 
     std::cout << "Solovey-Strassen Test result: " << result << "\n";
     std::cout << "Time: " << std::chrono::duration<double>(end - start).count() << "s\n";
-
-    auto error = ErrorProb::SoloveyStrassen(BN, param);
-    double error_prob = fractionToDouble(error.first, error.second);
-    std::cout << "Error probability: " << error_prob << " (" << (error_prob * 100) << "%)\n";
 }
 
 void CompleteTest()
@@ -147,6 +133,20 @@ void CompleteTest()
     MillerRabinTestTest(BN, param);
     std::cout << "\n";
     SoloveyStrassenTestTest(BN, param);
+
+    BigNumber phi = ErrorProb::EulerTotaient(BN);
+    std::cout << "\n";
+    auto errorF = ErrorProb::Fermat(phi, BN, param);
+    double error_probF = fractionToDouble(errorF.first, errorF.second);
+    std::cout << "Fermat Error probability: " << error_probF << " (" << (error_probF * 100) << "%)\n";
+
+    auto errorMR = ErrorProb::MillerRabin(phi, BN, param);
+    double error_probMR = fractionToDouble(errorMR.first, errorMR.second);
+    std::cout << "MillerRabin Error probability: " << error_probMR << " (" << (error_probMR * 100) << "%)\n";
+
+    auto errorSS = ErrorProb::SoloveyStrassen(phi, BN, param);
+    double error_probSS = fractionToDouble(errorSS.first, errorSS.second);
+    std::cout << "SoloveyStrassen Error probability: " << error_probSS << " (" << (error_probSS * 100) << "%)\n";
 }
 
 int main()
@@ -156,4 +156,4 @@ int main()
     CompleteTest();
     return 0;
 }
-// 29674495668685510550154174642905332730771991799853043350995075531276838753171770199594238596428121188033664754218345562493168782883
+// Кармайкл 9746347772161

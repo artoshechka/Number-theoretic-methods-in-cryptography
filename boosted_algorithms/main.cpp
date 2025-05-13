@@ -134,7 +134,7 @@ void CompleteTest()
     std::cout << "\n";
     SoloveyStrassenTestTest(BN, param);
 
-    BigNumber phi = ErrorProb::EulerTotaient(BN);
+    /*BigNumber phi = ErrorProb::EulerTotaient(BN);
     std::cout << "\n";
     auto errorF = ErrorProb::Fermat(phi, BN, param);
     double error_probF = fractionToDouble(errorF.first, errorF.second);
@@ -146,7 +146,7 @@ void CompleteTest()
 
     auto errorSS = ErrorProb::SoloveyStrassen(phi, BN, param);
     double error_probSS = fractionToDouble(errorSS.first, errorSS.second);
-    std::cout << "SoloveyStrassen Error probability: " << error_probSS << " (" << (error_probSS * 100) << "%)\n";
+    std::cout << "SoloveyStrassen Error probability: " << error_probSS << " (" << (error_probSS * 100) << "%)\n";*/
 }
 
 int main()

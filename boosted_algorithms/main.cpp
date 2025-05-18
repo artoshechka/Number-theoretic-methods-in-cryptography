@@ -133,27 +133,47 @@ void CompleteTest()
     MillerRabinTestTest(BN, param);
     std::cout << "\n";
     SoloveyStrassenTestTest(BN, param);
+}
+void LukaTestTest()
+{
+    BigNumber BN;
+    std::cout << "BN to check: ";
+    std::cin >> BN;
+    size_t param;
+    std::cout << "Enter readability parameter: ";
+    std::cin >> param;
 
-    /*BigNumber phi = ErrorProb::EulerTotaient(BN);
-    std::cout << "\n";
-    auto errorF = ErrorProb::Fermat(phi, BN, param);
-    double error_probF = fractionToDouble(errorF.first, errorF.second);
-    std::cout << "Fermat Error probability: " << error_probF << " (" << (error_probF * 100) << "%)\n";
+    auto start = std::chrono::high_resolution_clock::now();
+    bool result = LucasTest(BN, param);
+    auto end = std::chrono::high_resolution_clock::now();
 
-    auto errorMR = ErrorProb::MillerRabin(phi, BN, param);
-    double error_probMR = fractionToDouble(errorMR.first, errorMR.second);
-    std::cout << "MillerRabin Error probability: " << error_probMR << " (" << (error_probMR * 100) << "%)\n";
+    std::cout << "Lucas Test result: " << result << "\n";
+    std::cout << "Time: " << std::chrono::duration<double>(end - start).count() << "s\n";
+}
 
-    auto errorSS = ErrorProb::SoloveyStrassen(phi, BN, param);
-    double error_probSS = fractionToDouble(errorSS.first, errorSS.second);
-    std::cout << "SoloveyStrassen Error probability: " << error_probSS << " (" << (error_probSS * 100) << "%)\n";*/
+void GordonTest()
+{
+    size_t param;
+    std::cout << "Enter length of BigNumber to generate: ";
+    std::cin >> param;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    auto result = GordonsPrimeGenerator(param);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Gordon Generator result: " << result << "\n";
+    std::cout << "IS PRIME" << std::endl;
+    std::cout << "Fermat Test result: " << FermatTest(result, 25) << "\n";
+    std::cout << "Solovey-Strassen Test result: " << SoloveyStrassenTest(result, 25) << "\n";
+    std::cout << "Miller-Rabin Test result: " << MillerRabinTest(result, 25) << "\n";
+    std::cout << "Lucas Test result: " << LucasTest(result, 25) << "\n";
+    std::cout << "Time: " << std::chrono::duration<double>(end - start).count() << "s\n";
 }
 
 int main()
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    CompleteTest();
+    LukaTestTest();
     return 0;
 }
-// Кармайкл 9746347772161

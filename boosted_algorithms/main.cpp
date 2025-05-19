@@ -153,12 +153,8 @@ void LukaTestTest()
 
 void GordonTest()
 {
-    size_t param;
-    std::cout << "Enter length of BigNumber to generate: ";
-    std::cin >> param;
-
     auto start = std::chrono::high_resolution_clock::now();
-    auto result = GordonsPrimeGenerator(param);
+    auto result = GordonsPrimeGenerator();
     auto end = std::chrono::high_resolution_clock::now();
 
     std::cout << "Gordon Generator result: " << result << "\n";
@@ -166,8 +162,6 @@ void GordonTest()
     std::cout << "Fermat Test result: " << FermatTest(result, 25) << "\n";
     std::cout << "Solovey-Strassen Test result: " << SoloveyStrassenTest(result, 25) << "\n";
     std::cout << "Miller-Rabin Test result: " << MillerRabinTest(result, 25) << "\n";
-    std::cout << "Lucas Test result: " << LucasTest(result, 25) << "\n";
-    std::cout << "Time: " << std::chrono::duration<double>(end - start).count() << "s\n";
 }
 
 int main()

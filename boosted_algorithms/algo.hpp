@@ -199,26 +199,25 @@ PrimeFactors Factorize(BigNumber n)
 // Корректная реализация теста Люка
 bool LucasTest(const BigNumber &n, size_t t)
 {
-    if (n < 2)
-        return false;
-    if (n == 2)
-        return true;
+    if (n < 4)
+    {
+        throw std::invalid_argument("Число должно быть больше 3");
+    }
     if (n % 2 == 0)
-        return false;
+    {
+        throw std::invalid_argument("Число должно быть нечетным");
+    }
 
     BigNumber nm1 = n - 1;
     PrimeFactors factors = Factorize(nm1);
-
+    bool allConditionsMet = true;
     for (size_t i = 0; i < t; ++i)
     {
         BigNumber a = Generator(2, n - 2);
 
-        // Условие 1: a^(n-1) ≡ 1 mod n
         if (PowMod(a, nm1, n) != 1)
             return false;
 
-        // Условие 2: Для всех p_i | (n-1), a^((n-1)/p_i) ≢ 1 mod n
-        bool allConditionsMet = true;
         for (const auto &[p, exp] : factors)
         {
             if (PowMod(a, nm1 / p, n) == 1)
@@ -231,10 +230,7 @@ bool LucasTest(const BigNumber &n, size_t t)
         if (allConditionsMet)
             return true;
     }
-
-    // Если ни для одного a не выполнилось allConditionsMet,
-    // но все a прошли первое условие, число вероятно простое
-    return true;
+    return false;
 }
 
 // Генерация случайного простого числа длины bitLength бит
@@ -263,10 +259,10 @@ BigNumber GenerateRandomPrime(size_t bitLength, size_t mrRounds = 25)
     }
 }
 
-BigNumber GordonsPrimeGenerator(size_t bitLength)
+BigNumber GordonsPrimeGenerator()
 {
-    BigNumber s = GenerateRandomPrime(bitLength / 2);
-    BigNumber t = GenerateRandomPrime(bitLength / 2);
+    BigNumber s = GenerateRandomPrime(128);
+    BigNumber t = GenerateRandomPrime(128);
 
     BigNumber i = Generator(1, BigNumber(1) << 16);
     BigNumber r;
